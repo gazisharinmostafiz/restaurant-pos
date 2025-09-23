@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant POS System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <h2>Select Your Role</h2>
+            <button class="login-btn" data-role="kitchen">Kitchen</button>
+            <button class="login-btn" data-role="front">Front</button>
+            <button class="login-btn" data-role="waiter">Waiter</button>
+        </div>
+    </div>
+
+    <div id="main-dashboard" class="screen">
+        <header class="dashboard-header">
+            <h1 id="user-role-display">Waiter Dashboard</h1>
+            <div class="header-actions">
+                <button id="add-order-btn" class="action-btn">New Order</button>
+                <button id="view-old-orders-btn" class="action-btn">View Old Orders</button>
+                <button id="z-report-btn" class="action-btn">Z-Report</button>
+                <button id="logout-btn" class="action-btn logout">Logout</button>
+            </div>
+        </header>
+
+        <main class="dashboard-content">
+            <div id="menu-section" class="section-container">
+                <h2>Menu</h2>
+                <div class="menu-categories">
+                    <button class="menu-category-btn" data-category="Snacks">Snacks</button>
+                    <button class="menu-category-btn" data-category="Chef Special Chaap">Chef Special Chaap</button>
+                    <button class="menu-category-btn" data-category="Deshi Grilled Chicken">Deshi Grilled Chicken</button>
+                    <button class="menu-category-btn" data-category="Breads">Breads</button>
+                    <button class="menu-category-btn" data-category="Chicken Sheek Kabab">Chicken Sheek Kabab</button>
+                    <button class="menu-category-btn" data-category="Beef Kabab">Beef Kabab</button>
+                    <button class="menu-category-btn" data-category="Drinks">Drinks</button>
+                    <button class="menu-category-btn" data-category="House Special Drinks">House Special Drinks</button>
+                    <button class="menu-category-btn" data-category="Cha">Cha</button>
+                    <button class="menu-category-btn" data-category="Dessert">Dessert</button>
+                </div>
+                <div id="menu-items" class="menu-items"></div>
+            </div>
+
+            <div id="order-section" class="section-container">
+                <h2>Current Order</h2>
+                <div id="order-details">
+                    <div class="order-type-selection">
+                        <select id="order-type-select">
+                            <option value="table">Table Order</option>
+                            <option value="takeaway">Takeaway Order</option>
+                        </select>
+                        <select id="table-select" style="display:none;">
+                            <option value="1">Table 1</option>
+                            <option value="2">Table 2</option>
+                            <option value="3">Table 3</option>
+                            <option value="4">Table 4</option>
+                            <option value="5">Table 5</option>
+                            <option value="6">Table 6</option>
+                            <option value="7">Table 7</option>
+                        </select>
+                    </div>
+                    <ul id="order-list"></ul>
+                    <div class="order-total">
+                        <strong>Total:</strong> <span id="total-price">£0.00</span>
+                    </div>
+                    <button id="place-order-btn" class="action-btn primary">Place Order</button>
+                </div>
+            </div>
+
+            <div id="queue-section" class="section-container">
+                <h2>Order Queue (Kitchen View)</h2>
+                <ul id="order-queue-list"></ul>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

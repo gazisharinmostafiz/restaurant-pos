@@ -3,82 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant POS System</title>
+    <title>Tong POS - Restaurant System</title>
+    <!-- CoreUI CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/css/coreui.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="login-screen" class="screen active">
+    <div id="login-screen" class="screen active" style="display: flex;">
         <div class="login-container">
-            <h2>Select Your Role</h2>
-            <button class="login-btn" data-role="kitchen">Kitchen</button>
-            <button class="login-btn" data-role="front">Front</button>
-            <button class="login-btn" data-role="waiter">Waiter</button>
+            <h2>Tong POS Login</h2>
+            <form id="login-form">
+                <div class="input-group mb-3">
+                    <input type="text" id="username" class="form-control" placeholder="Username" required>
+                </div>
+                <input type="password" id="password" class="form-control" placeholder="Password" required>
+                <button type="submit" class="btn btn-primary w-100 mt-3">Login</button>
+            </form>
         </div>
     </div>
 
+    <!-- CoreUI Dashboard Structure -->
     <div id="main-dashboard" class="screen">
-        <header class="dashboard-header">
-            <h1 id="user-role-display">Waiter Dashboard</h1>
-            <div class="header-actions">
-                <button id="add-order-btn" class="action-btn">New Order</button>
-                <button id="view-old-orders-btn" class="action-btn">View Old Orders</button>
-                <button id="z-report-btn" class="action-btn">Z-Report</button>
-                <button id="logout-btn" class="action-btn logout">Logout</button>
+        <!-- Sidebar -->
+        <div class="sidebar sidebar-dark sidebar-fixed" id="sidebar">
+            <div class="sidebar-brand d-none d-md-flex">
+                Tong POS
             </div>
-        </header>
+            <ul class="sidebar-nav menu-categories" data-coreui="navigation" data-simplebar="">
+                <li class="nav-title">Menu Categories</li>
+                <!-- Categories will be dynamically inserted here from JS -->
+            </ul>
+            <ul class="sidebar-nav" data-coreui="navigation">
+                <li class="nav-title">Admin</li>
+                <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><svg class="nav-icon" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M488.2,184.2h-16V68.39a20,20,0,0,0-20-20H60.2a20,20,0,0,0-20,20V184.2h-16a20,20,0,0,0-20,20V443.61a20,20,0,0,0,20,20h464a20,20,0,0,0,20-20V204.2A20,20,0,0,0,488.2,184.2ZM80.2,88.39h352.4v95.81H80.2ZM472.2,423.61h-432V224.2h432Z"/><path fill="currentColor" d="M152.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,152.2,284.2Z"/><path fill="currentColor" d="M256.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,256.2,284.2Z"/><path fill="currentColor" d="M360.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,360.2,284.2Z"/></svg> Manage Stock</a></li>
+            </ul>
+        </div>
 
-        <main class="dashboard-content">
-            <div id="menu-section" class="section-container">
-                <h2>Menu</h2>
-                <div class="menu-categories">
-                    <button class="menu-category-btn" data-category="Snacks">Snacks</button>
-                    <button class="menu-category-btn" data-category="Chef Special Chaap">Chef Special Chaap</button>
-                    <button class="menu-category-btn" data-category="Deshi Grilled Chicken">Deshi Grilled Chicken</button>
-                    <button class="menu-category-btn" data-category="Breads">Breads</button>
-                    <button class="menu-category-btn" data-category="Chicken Sheek Kabab">Chicken Sheek Kabab</button>
-                    <button class="menu-category-btn" data-category="Beef Kabab">Beef Kabab</button>
-                    <button class="menu-category-btn" data-category="Drinks">Drinks</button>
-                    <button class="menu-category-btn" data-category="House Special Drinks">House Special Drinks</button>
-                    <button class="menu-category-btn" data-category="Cha">Cha</button>
-                    <button class="menu-category-btn" data-category="Dessert">Dessert</button>
-                </div>
-                <div id="menu-items" class="menu-items"></div>
-            </div>
-
-            <div id="order-section" class="section-container">
-                <h2>Current Order</h2>
-                <div id="order-details">
-                    <div class="order-type-selection">
-                        <select id="order-type-select">
-                            <option value="table">Table Order</option>
-                            <option value="takeaway">Takeaway Order</option>
-                        </select>
-                        <select id="table-select" style="display:none;">
-                            <option value="1">Table 1</option>
-                            <option value="2">Table 2</option>
-                            <option value="3">Table 3</option>
-                            <option value="4">Table 4</option>
-                            <option value="5">Table 5</option>
-                            <option value="6">Table 6</option>
-                            <option value="7">Table 7</option>
-                        </select>
+        <!-- Main Wrapper -->
+        <div class="wrapper d-flex flex-column min-vh-100 bg-light">
+            <!-- Header -->
+            <header class="header header-sticky mb-4">
+                <div class="container-fluid">
+                    <button class="header-toggler px-md-0 me-md-3" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"><svg class="header-toggler-icon" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="var(--cui-icon-color, currentColor)" d="M0 96l512 0v64l-512 0zM0 224l512 0v64l-512 0zM0 352l512 0v64l-512 0z"></path></svg></button>
+                    <h5 id="user-role-display" class="mb-0">Dashboard</h5>
+                    <div class="header-actions ms-auto">                        
+                        <button id="add-order-btn" class="btn btn-light me-2">New Order</button>
+                        <button id="view-old-orders-btn" class="btn btn-light me-2">View Old Orders</button>
+                        <button id="z-report-btn" class="btn btn-warning me-2">Z-Report</button>
+                        <button id="logout-btn" class="btn btn-danger">Logout</button>
                     </div>
-                    <ul id="order-list"></ul>
-                    <div class="order-total">
-                        <strong>Total:</strong> <span id="total-price">£0.00</span>
+                </div>
+            </header>
+
+            <!-- Body Content -->
+            <div class="body flex-grow-1 px-3">
+                <div class="container-lg">
+                    <div class="row">
+                        <!-- Left Column: Menu and Pending Orders -->
+                        <div class="col-lg-8">
+                            <div id="menu-section" class="card mb-4">
+                                <div class="card-header">Menu</div>
+                                <div class="card-body">
+                                    <div id="menu-items" class="menu-items"></div>
+                                </div>
+                            </div>
+                            <div id="pending-orders-section" class="card mb-4">
+                                <div class="card-header">Pending Orders (for Payment)</div>
+                                <div class="card-body">
+                                    <ul id="pending-orders-list" class="list-group"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Current Order -->
+                        <div id="order-section" class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">Current Order</div>
+                                <div class="card-body">
+                                    <div class="order-type-selection mb-3">
+                                        <select id="order-type-select" class="form-select">
+                                            <option value="table">Table Order</option>
+                                            <option value="takeaway">Takeaway Order</option>
+                                        </select>
+                                        <select id="table-select" class="form-select mt-2">
+                                            <option value="1">Table 1</option> <option value="2">Table 2</option> <option value="3">Table 3</option> <option value="4">Table 4</option> <option value="5">Table 5</option> <option value="6">Table 6</option> <option value="7">Table 7</option> <option value="8">Table 8</option>
+                                        </select>
+                                    </div>
+                                    <ul id="order-list" class="list-group list-group-flush mb-3"></ul>
+                                    <div class="order-total d-flex justify-content-between fs-5 fw-bold border-top pt-2">
+                                        <span>Total:</span>
+                                        <span id="total-price">£0.00</span>
+                                    </div>
+                                    <div class="order-actions d-grid gap-2 mt-3">
+                                        <button id="place-order-btn" class="btn btn-primary">Send to Kitchen</button>
+                                        <button id="pay-cash-btn" class="btn btn-success">Pay Cash</button>
+                                        <button id="pay-card-btn" class="btn btn-info">Pay Card</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kitchen View: Order Queue -->
+                        <div id="queue-section" class="col-12">
+                             <div class="card">
+                                <div class="card-header">Order Queue (Kitchen View)</div>
+                                <div class="card-body">
+                                    <ul id="order-queue-list"></ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button id="place-order-btn" class="action-btn primary">Place Order</button>
                 </div>
             </div>
-
-            <div id="queue-section" class="section-container">
-                <h2>Order Queue (Kitchen View)</h2>
-                <ul id="order-queue-list"></ul>
-            </div>
-        </main>
+        </div>
     </div>
 
+<!-- Updated Payment Modal -->
+<div id="payment-modal" class="modal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Process Payment</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3 fs-4 text-center">
+                    <strong>Total Due:</strong> <span id="payment-total-due" class="text-success">£0.00</span>
+                </div>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Discount (£)</span>
+                    <input type="number" id="discount-amount" class="form-control" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Tendered (£)</span>
+                    <input type="number" id="amount-tendered" class="form-control" placeholder="0.00" step="0.01" min="0">
+                </div>
+                 <div class="mb-3 fs-5 text-center">
+                    <strong>Change Due:</strong> <span id="payment-change-due">£0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="confirm-payment-btn" class="btn btn-primary">Confirm Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Management Modal -->
+<div id="stock-modal" class="modal">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Stock</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <div class="accordion" id="stock-list-accordion">
+                    <!-- Stock items will be injected here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="save-stock-btn" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Z-Report Modal with Sales Graph -->
+<div id="z-report-modal" class="modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Z-Report (Today's Sales)</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <div id="z-report-summary"></div>
+                <canvas id="sales-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <div id="old-orders-modal" class="modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Completed Orders</h5>
+                    <button type="button" class="btn-close close-btn"></button>
+                </div>
+                <div class="modal-body">
+                <div class="filter-controls">
+                    <input type="date" id="old-orders-date-filter" class="form-control">
+                    <button id="filter-orders-btn" class="btn btn-secondary">Filter by Date</button>
+                    <button id="show-all-orders-btn" class="btn btn-outline-secondary">Show All</button>
+                </div>
+                <ul id="old-orders-list">
+                    <!-- Completed orders will be injected here -->
+                </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        Developed by Gazi Sharin Mostafiz
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/js/coreui.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Your Custom Script -->
     <script src="script.js"></script>
 </body>
 </html>

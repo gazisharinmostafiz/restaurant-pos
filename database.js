@@ -23,7 +23,8 @@ async function initializeDatabase() {
             password: process.env.DB_PASSWORD || '',
             port: process.env.DB_PORT || 3307,
         });
-        await tempConnection.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'res_pos'}\``);
+        await tempConnection.query(`CREATE DATABASE IF NOT EXISTS 
+${process.env.DB_NAME || 'res_pos'}`);
         await tempConnection.end();
 
         // Now, get a connection from the pool which is configured to use the correct database.
@@ -48,6 +49,7 @@ async function initializeDatabase() {
                 { username: 'admin', password: '1234', role: 'admin' },
                 { username: 'waiter', password: '1234', role: 'waiter' },
                 { username: 'kitchen', password: '1234', role: 'kitchen' },
+                { username: 'front', password: '1234', role: 'front' },
             ];
             for (const user of users) {
                 const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -126,11 +128,33 @@ async function initializeDatabase() {
         console.log('Database tables are ready.');
 
     } catch (err) {
-        console.error('Failed to initialize database:', err.message);
+        console.error('Failed to initialize database:', err);
         process.exit(1);
     }
 }
 
+async function updateUsers() {
+    try {
+        const connection = await pool.getConnection();
+        console.log('Updating users...');
+        const users = [
+            { username: 'admin', password: '1234', role: 'admin' },
+            { username: 'waiter', password: '1234', role: 'waiter' },
+            { username: 'kitchen', password: '1234', role: 'kitchen' },
+            { username: 'front', password: '1234', role: 'front' },
+        ];
+        for (const user of users) {
+            const hashedPassword = await bcrypt.hash(user.password, 10);
+            await connection.query("UPDATE users SET password = ? WHERE username = ?", [hashedPassword, user.username]);
+        }
+        connection.release();
+        console.log('Users updated.');
+    } catch (err) {
+        console.error('Failed to update users:', err.message);
+    }
+}
+
+console.log('Initializing database...');
 initializeDatabase();
 
 module.exports = pool;

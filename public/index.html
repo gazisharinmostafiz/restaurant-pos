@@ -37,6 +37,7 @@
             <ul class="sidebar-nav" data-coreui="navigation">
                 <li class="nav-title">Admin</li>
                 <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><svg class="nav-icon" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M488.2,184.2h-16V68.39a20,20,0,0,0-20-20H60.2a20,20,0,0,0-20,20V184.2h-16a20,20,0,0,0-20,20V443.61a20,20,0,0,0,20,20h464a20,20,0,0,0,20-20V204.2A20,20,0,0,0,488.2,184.2ZM80.2,88.39h352.4v95.81H80.2ZM472.2,423.61h-432V224.2h432Z"/><path fill="currentColor" d="M152.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,152.2,284.2Z"/><path fill="currentColor" d="M256.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,256.2,284.2Z"/><path fill="currentColor" d="M360.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,360.2,284.2Z"/></svg> Manage Stock</a></li>
+                 <li id="manage-users-sidebar-item" class="nav-item"><a class="nav-link" href="#"><svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="20" height="20"><path fill="currentColor" d="M256 256c52.8 0 96-43.2 96-96s-43.2-96-96-96s-96 43.2-96 96s43.2 96 96 96zm0 64c-61.6 0-112 50.4-112 112v32h224v-32c0-61.6-50.4-112-112-112z"/></svg> Manage Users</a></li>
             </ul>
         </div>
 
@@ -155,16 +156,51 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Manage Stock</h5>
+                <h5 class="modal-title">Manage Menu & Stock</h5>
                 <button type="button" class="btn-close close-btn"></button>
             </div>
             <div class="modal-body">
+                <div class="card mb-4">
+                    <div class="card-header">Add/Edit Menu Item</div>
+                    <div class="card-body">
+                        <form id="menu-item-form">
+                            <input type="hidden" id="menu-item-id">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="menu-item-name" class="form-label">Item Name</label>
+                                    <input type="text" id="menu-item-name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="menu-item-category" class="form-label">Category</label>
+                                    <input type="text" id="menu-item-category" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="menu-item-price" class="form-label">Price (£)</label>
+                                    <input type="number" id="menu-item-price" class="form-control" step="0.01" min="0" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="menu-item-stock" class="form-label">Initial Stock</label>
+                                    <input type="number" id="menu-item-stock" class="form-control" min="0" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Item</button>
+                            <button type="button" id="clear-menu-item-form-btn" class="btn btn-secondary">Clear</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <input type="text" id="stock-search-input" class="form-control" placeholder="Search for items...">
+                </div>
                 <div class="accordion" id="stock-list-accordion">
                     <!-- Stock items will be injected here -->
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" id="save-stock-btn" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary close-btn">Cancel</button>
+                <button type="button" id="save-stock-btn" class="btn btn-primary">Save Stock Changes</button>
             </div>
         </div>
     </div>
@@ -181,6 +217,55 @@
             <div class="modal-body">
                 <div id="z-report-summary"></div>
                 <canvas id="sales-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Users Modal -->
+<div id="manage-users-modal" class="modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Users</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card">
+                    <div class="card-header">Add/Edit User</div>
+                    <div class="card-body">
+                        <form id="user-form">
+                            <input type="hidden" id="user-id">
+                            <div class="mb-3">
+                                <label for="user-username" class="form-label">Username</label>
+                                <input type="text" id="user-username" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="user-password" class="form-label">Password</label>
+                                <input type="password" id="user-password" class="form-control" placeholder="Leave blank to keep current password">
+                            </div>
+                            <div class="mb-3">
+                                <label for="user-role" class="form-label">Role</label>
+                                <select id="user-role" class="form-select">
+                                    <option value="admin">Admin</option>
+                                    <option value="kitchen">Kitchen</option>
+                                    <option value="front">Front</option>
+                                    <option value="waiter">Waiter</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save User</button>
+                            <button type="button" id="clear-user-form-btn" class="btn btn-secondary">Clear</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card mt-4">
+                    <div class="card-header">Existing Users</div>
+                    <div class="card-body">
+                        <ul id="users-list" class="list-group">
+                            <!-- User items will be injected here -->
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -215,6 +300,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/js/coreui.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Your Custom Script -->
-    <script src="script.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>

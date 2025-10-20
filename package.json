@@ -16,7 +16,6 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-session": "^1.18.2",
-    "mysql2": "^3.15.2",
-    "sqlite3": "^5.1.7"
+    "mysql2": "^3.15.2"
   }
 }

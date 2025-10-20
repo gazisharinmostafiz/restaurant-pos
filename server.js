@@ -32,9 +32,12 @@ const isAuthenticated = (req, res, next) => {
     }
 };
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', isAuthenticated, async (req, res) => {
+    if (req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
     try {
-        const [rows] = await db.execute("SELECT role FROM users");
+        const [rows] = await db.execute("SELECT id, username, role FROM users");
         res.json({ users: rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -56,6 +59,7 @@ app.post('/api/login', async (req, res) => {
             res.status(401).json({ error: 'Invalid username or password.' });
         }
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Server error during login.' });
     }
 });
@@ -85,6 +89,7 @@ app.get('/api/session', (req, res) => {
 app.get('/api/menu', isAuthenticated, async (req, res) => {
     try {
         const [rows] = await db.execute("SELECT id, name, price, category, stock FROM menu ORDER BY category, name");
+        console.log('Menu data:', rows);
         res.json({ menu: rows });
     } catch (err) {
         console.error('Failed to fetch menu:', err);
@@ -347,6 +352,92 @@ app.delete('/api/menu/item/:id', isAuthenticated, async (req, res) => {
         res.json({ success: true, message: 'Menu item deleted.' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete menu item.' });
+    }
+});
+
+app.post('/api/users', isAuthenticated, async (req, res) => {
+    if (req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { username, password, role } = req.body;
+
+    if (!username || !password || !role) {
+        return res.status(400).json({ error: 'Username, password, and role are required.' });
+    }
+
+    if (!['admin', 'waiter', 'kitchen', 'front'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role specified.' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await db.execute(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            [username, hashedPassword, role]
+        );
+        res.status(201).json({ success: true, message: `User '${username}' created successfully.` });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Username already exists.' });
+        }
+        console.error('Failed to create user:', err);
+        res.status(500).json({ error: 'Failed to create user due to a server error.' });
+    }
+});
+
+app.put('/api/users/:id', isAuthenticated, async (req, res) => {
+    if (req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { id } = req.params;
+    const { username, password, role } = req.body;
+
+    if (!username || !role) {
+        return res.status(400).json({ error: 'Username and role are required.' });
+    }
+
+    if (!['admin', 'waiter', 'kitchen', 'front'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role specified.' });
+    }
+
+    try {
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await db.execute(
+                "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?",
+                [username, hashedPassword, role, id]
+            );
+        } else {
+            await db.execute(
+                "UPDATE users SET username = ?, role = ? WHERE id = ?",
+                [username, role, id]
+            );
+        }
+        res.json({ success: true, message: `User '${username}' updated successfully.` });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Username already exists.' });
+        }
+        console.error('Failed to update user:', err);
+        res.status(500).json({ error: 'Failed to update user due to a server error.' });
+    }
+});
+
+app.delete('/api/users/:id', isAuthenticated, async (req, res) => {
+    if (req.session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { id } = req.params;
+
+    try {
+        await db.execute("DELETE FROM users WHERE id = ?", [id]);
+        res.json({ success: true, message: 'User deleted successfully.' });
+    } catch (err) {
+        console.error('Failed to delete user:', err);
+        res.status(500).json({ error: 'Failed to delete user due to a server error.' });
     }
 });
 

@@ -1,6 +1,6 @@
 async function apiFetch(url, options = {}) {
     try {
-        const response = await fetch(url, options);
+        const response = await fetch(url, { credentials: 'include', ...options });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred' }));
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
@@ -32,9 +32,12 @@ export const placeOrder = (orderData) => apiFetch('/api/orders', {
 
 export const getPendingOrders = () => apiFetch('/api/orders/pending');
 
-export const getCompletedOrders = (date = null) => {
+export const getCompletedOrders = (date = null, paymentMethod = null) => {
     let url = '/api/orders/completed';
-    if (date) url += `?date=${date}`;
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (paymentMethod) params.append('paymentMethod', paymentMethod);
+    if (params.toString()) url += `?${params.toString()}`;
     return apiFetch(url);
 };
 
@@ -50,6 +53,12 @@ export const completeOrder = (orderId, paymentData) => apiFetch(`/api/orders/${o
     body: JSON.stringify(paymentData),
 });
 
+export const appendOrderItems = (orderId, items) => apiFetch(`/api/orders/${orderId}/items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+});
+
 export const saveStock = (updates) => apiFetch('/api/stock', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -57,6 +66,15 @@ export const saveStock = (updates) => apiFetch('/api/stock', {
 });
 
 export const getZReport = () => apiFetch('/api/reports/z');
+
+export const getProfitLossReport = (startDate, endDate) => {
+    let url = '/api/reports/profit-loss';
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    return apiFetch(url);
+};
 
 export const getUsers = () => apiFetch('/api/users');
 
@@ -90,4 +108,13 @@ export const updateMenuItem = (itemId, itemData) => apiFetch(`/api/menu/item/${i
 
 export const deleteMenuItem = (itemId) => apiFetch(`/api/menu/item/${itemId}`, {
     method: 'DELETE',
+});
+
+export const getAdminDashboardSummary = () => apiFetch('/api/admin/dashboard-summary');
+
+// Payments (split/partial)
+export const addOrderPayment = (orderId, method, amount) => apiFetch(`/api/orders/${orderId}/payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ method, amount }),
 });

@@ -26,19 +26,34 @@
     <!-- CoreUI Dashboard Structure -->
     <div id="main-dashboard" class="screen">
         <!-- Sidebar -->
-        <div class="sidebar sidebar-dark sidebar-fixed" id="sidebar">
+        <div class="sidebar sidebar-dark sidebar-fixed sidebar-modern" id="sidebar">
             <div class="sidebar-brand d-none d-md-flex">
-                Tong POS
+                <span class="brand-icon">🍽️</span>
+                <span class="brand-text">Tong POS</span>
             </div>
-            <ul class="sidebar-nav menu-categories" data-coreui="navigation" data-simplebar="">
-                <li class="nav-title">Menu Categories</li>
-                <!-- Categories will be dynamically inserted here from JS -->
-            </ul>
-            <ul class="sidebar-nav" data-coreui="navigation">
+            <ul id="sidebar-nav" class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+                <li class="nav-title">Main</li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/sales"><span class="nav-icon">🧾</span> Sales / Register</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/orders"><span class="nav-icon">📦</span> Orders</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/inventory"><span class="nav-icon">📇</span> Inventory</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/customers"><span class="nav-icon">👤</span> Customers</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/employees"><span class="nav-icon">👥</span> Employees</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/reports"><span class="nav-icon">📊</span> Reports</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/settings"><span class="nav-icon">⚙️</span> Settings</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/accounting"><span class="nav-icon">💵</span> Accounting</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/system"><span class="nav-icon">🖥️</span> System</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/help"><span class="nav-icon">❓</span> Help</a></li>
                 <li class="nav-title">Admin</li>
-                <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><svg class="nav-icon" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M488.2,184.2h-16V68.39a20,20,0,0,0-20-20H60.2a20,20,0,0,0-20,20V184.2h-16a20,20,0,0,0-20,20V443.61a20,20,0,0,0,20,20h464a20,20,0,0,0,20-20V204.2A20,20,0,0,0,488.2,184.2ZM80.2,88.39h352.4v95.81H80.2ZM472.2,423.61h-432V224.2h432Z"/><path fill="currentColor" d="M152.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,152.2,284.2Z"/><path fill="currentColor" d="M256.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,256.2,284.2Z"/><path fill="currentColor" d="M360.2,284.2a20,20,0,0,0-20,20v80a20,20,0,0,0,40,0v-80A20,20,0,0,0,360.2,284.2Z"/></svg> Manage Stock</a></li>
-                 <li id="manage-users-sidebar-item" class="nav-item"><a class="nav-link" href="#"><svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="20" height="20"><path fill="currentColor" d="M256 256c52.8 0 96-43.2 96-96s-43.2-96-96-96s-96 43.2-96 96s43.2 96 96 96zm0 64c-61.6 0-112 50.4-112 112v32h224v-32c0-61.6-50.4-112-112-112z"/></svg> Manage Users</a></li>
+                <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon">📦</span> Manage Stock</a></li>
+                <li id="manage-users-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon">🔐</span> Manage Users</a></li>
+                <li class="nav-title">Super Admin</li>
+                <li class="nav-item"><a class="nav-link" href="/admin/businesses.html"><span class="nav-icon">🏢</span> Business List</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/business-categories.html"><span class="nav-icon">🗂️</span> Business Category</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/subscription-plans.html"><span class="nav-icon">💼</span> Subscription Plans</a></li>
             </ul>
+            <div class="sidebar-footer d-none d-md-block">
+                <div class="small text-muted">v1.0 • Online</div>
+            </div>
         </div>
 
         <!-- Main Wrapper -->
@@ -52,21 +67,90 @@
                         <button id="add-order-btn" class="btn btn-light me-2">New Order</button>
                         <button id="view-old-orders-btn" class="btn btn-light me-2">View Old Orders</button>
                         <button id="z-report-btn" class="btn btn-warning me-2">Z-Report</button>
+                        <button id="profit-loss-btn" class="btn btn-info me-2">Profit/Loss</button>
                         <button id="logout-btn" class="btn btn-danger">Logout</button>
                     </div>
                 </div>
+                <!-- Main POS Menu Tabs -->
+                <nav class="pos-tabs-nav">
+                    <ul id="pos-tabs" class="nav nav-pills justify-content-start px-3">
+                        <li class="nav-item"><a class="nav-link" href="#/sales">Sales</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/orders">Orders</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/inventory">Inventory</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/customers">Customers</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/employees">Employees</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/reports">Reports</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/settings">Settings</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/accounting">Accounting</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/system">System</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/help">Help</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/menu">Menu Mgmt</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/tables">Tables</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#/kitchen">Kitchen</a></li>
+                    </ul>
+                </nav>
             </header>
 
             <!-- Body Content -->
             <div class="body flex-grow-1 px-3">
+
+                <!-- Admin Dashboard Section -->
+                <div id="admin-dashboard-section" class="container-lg" style="display: none;">
+                    <div class="row">
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="card mb-4 text-white bg-primary">
+                                <div id="admin-summary-sales" class="card-body"></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="card mb-4 text-white bg-info">
+                                <div id="admin-summary-orders" class="card-body"></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="card mb-4 text-white bg-warning">
+                                <div id="admin-summary-users" class="card-body"></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="card mb-4 text-white bg-danger">
+                                <div id="admin-summary-low-stock" class="card-body"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="container-lg">
+                    <!-- SPA Sections container (hidden/shown by router) -->
+                    <div id="app-sections" class="mb-4" style="display:none;">
+                        <div id="section-sales" class="pos-section card"><div class="card-header">Sales / Register</div><div class="card-body"><div id="sales-root"></div></div></div>
+                        <div id="section-orders" class="pos-section card"><div class="card-header">Orders</div><div class="card-body"><div id="orders-root"></div></div></div>
+                        <div id="section-inventory" class="pos-section card"><div class="card-header">Inventory</div><div class="card-body"><div id="inventory-root"></div></div></div>
+                        <div id="section-customers" class="pos-section card"><div class="card-header">Customers</div><div class="card-body"><div id="customers-root"></div></div></div>
+                        <div id="section-employees" class="pos-section card"><div class="card-header">Employees</div><div class="card-body"><div id="employees-root"></div></div></div>
+                        <div id="section-reports" class="pos-section card"><div class="card-header">Reports</div><div class="card-body"><div id="reports-root"></div></div></div>
+                        <div id="section-settings" class="pos-section card"><div class="card-header">Settings</div><div class="card-body"><div id="settings-root"></div></div></div>
+                        <div id="section-accounting" class="pos-section card"><div class="card-header">Accounting / Finance</div><div class="card-body"><div id="accounting-root"></div></div></div>
+                        <div id="section-system" class="pos-section card"><div class="card-header">System</div><div class="card-body"><div id="system-root"></div></div></div>
+                        <div id="section-help" class="pos-section card"><div class="card-header">Help</div><div class="card-body"><div id="help-root"></div></div></div>
+                        <div id="section-menu" class="pos-section card"><div class="card-header">Menu Management</div><div class="card-body"><div id="menu-root"></div></div></div>
+                        <div id="section-tables" class="pos-section card"><div class="card-header">Table Management</div><div class="card-body"><div id="tables-root"></div></div></div>
+                        <div id="section-kitchen" class="pos-section card"><div class="card-header">Kitchen Display</div><div class="card-body"><div id="kitchen-root"></div></div></div>
+                    </div>
+
                     <div class="row">
                         <!-- Left Column: Menu and Pending Orders -->
                         <div class="col-lg-8">
                             <div id="menu-section" class="card mb-4">
-                                <div class="card-header">Menu</div>
+                                <div class="card-header">Home</div>
                                 <div class="card-body">
-                                    <div id="menu-items" class="menu-items"></div>
+                                    <!-- Category Bar moved from sidebar to main content -->
+                                    <ul id="category-bar" class="menu-categories nav nav-tabs category-bar mb-3" role="tablist"></ul>
+                                    <div class="d-flex gap-2 align-items-center mb-2">
+                                        <input id="lookup-input" class="form-control" placeholder="Scan or Lookup Item (name or ID)" />
+                                        <button id="lookup-add-btn" class="btn btn-outline-primary">Add</button>
+                                    </div>
+                                    <div id="category-tab-content" class="tab-content"></div>
                                 </div>
                             </div>
                             <div id="pending-orders-section" class="card mb-4">
@@ -100,6 +184,14 @@
                                         <button id="place-order-btn" class="btn btn-primary">Send to Kitchen</button>
                                         <button id="pay-cash-btn" class="btn btn-success">Pay Cash</button>
                                         <button id="pay-card-btn" class="btn btn-info">Pay Card</button>
+                                        <div class="d-grid gap-2 mt-2">
+                                            <button id="suspend-sale-btn" class="btn btn-outline-secondary">Suspend Sale</button>
+                                            <button id="resume-sale-btn" class="btn btn-outline-secondary">Resume Sale</button>
+                                            <div class="d-flex gap-2">
+                                                <button id="print-receipt-btn" class="btn btn-outline-dark w-50">Print Receipt</button>
+                                                <button id="email-receipt-btn" class="btn btn-outline-dark w-50">Email Receipt</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -118,7 +210,82 @@
                 </div>
             </div>
         </div>
+</div>
+
+<!-- Suspended Sales Modal -->
+<div id="suspended-sales-modal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Suspended Sales</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <ul id="suspended-sales-list" class="list-group"></ul>
+            </div>
+        </div>
     </div>
+    </div>
+
+<!-- Profit/Loss Modal -->
+<div id="profit-loss-modal" class="modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Profit & Loss Report</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-5">
+                        <label for="profit-loss-start-date" class="form-label">Start Date</label>
+                        <input type="date" id="profit-loss-start-date" class="form-control">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="profit-loss-end-date" class="form-label">End Date</label>
+                        <input type="date" id="profit-loss-end-date" class="form-control">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button id="generate-profit-loss-btn" class="btn btn-primary w-100">Generate</button>
+                    </div>
+                </div>
+                <div id="profit-loss-results"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order View Modal (Orders tab) -->
+<div id="order-view-modal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="order-view-title" class="modal-title">Order Details</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div id="order-view-content" class="modal-body"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Table Action Modal -->
+<div id="table-order-confirm-modal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Existing Table Order</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <p id="table-order-confirm-text">There is already an open order for this table. Add items to existing order or create a new order?</p>
+                <div class="d-flex gap-2">
+                    <button id="btn-add-to-existing-order" class="btn btn-primary w-50">Add To Existing</button>
+                    <button id="btn-create-new-order" class="btn btn-outline-secondary w-50">New Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Updated Payment Modal -->
 <div id="payment-modal" class="modal">
@@ -280,9 +447,14 @@
                     <button type="button" class="btn-close close-btn"></button>
                 </div>
                 <div class="modal-body">
-                <div class="filter-controls">
+                <div class="filter-controls d-flex gap-2 mb-3">
                     <input type="date" id="old-orders-date-filter" class="form-control">
-                    <button id="filter-orders-btn" class="btn btn-secondary">Filter by Date</button>
+                    <select id="old-orders-payment-filter" class="form-select">
+                        <option value="">All Payment Methods</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                    </select>
+                    <button id="filter-orders-btn" class="btn btn-secondary">Filter</button>
                     <button id="show-all-orders-btn" class="btn btn-outline-secondary">Show All</button>
                 </div>
                 <ul id="old-orders-list">

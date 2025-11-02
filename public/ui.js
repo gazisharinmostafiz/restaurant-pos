@@ -107,12 +107,74 @@ function createToastContainer() {
 }
 
 export function populateMenuCategories(menu) {
-    menuCategoriesContainer.innerHTML = '<li class="nav-title">Menu Categories</li>';
+    // Render categories into the main category bar (no sidebar title)
+    menuCategoriesContainer.innerHTML = '';
     Object.keys(menu).forEach(category => {
         const li = document.createElement('li');
         li.className = 'nav-item';
         li.innerHTML = `<a class="nav-link menu-category-btn" href="#" data-category="${category}">${category}</a>`;
         menuCategoriesContainer.appendChild(li);
+    });
+}
+
+function slugify(text) {
+    return text.toString().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+export function buildCategoryTabPanes(menu) {
+    const tabContent = document.getElementById('category-tab-content');
+    if (!tabContent) return;
+    tabContent.innerHTML = '';
+    const categories = Object.keys(menu);
+    categories.forEach((category, idx) => {
+        const id = `tab-${slugify(category)}`;
+        const pane = document.createElement('div');
+        pane.className = `tab-pane fade ${idx === 0 ? 'show active' : ''}`;
+        pane.id = id;
+        pane.setAttribute('role', 'tabpanel');
+        pane.innerHTML = '<div class="menu-items"></div>';
+        tabContent.appendChild(pane);
+    });
+}
+
+export function displayCategoryTabItems(category) {
+    const { menu } = getState();
+    const tabPaneItems = document.querySelector(`#category-tab-content #tab-${slugify(category)} .menu-items`);
+    if (!tabPaneItems) return;
+    tabPaneItems.innerHTML = '';
+    (menu[category] || []).forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.dataset.name = item.name;
+        div.innerHTML = `
+            <div class="item-name">${item.name}</div>
+            <div class="item-meta"><span class="stock-badge">Stock: ${item.stock}</span></div>
+            <div class="item-price">��${Number(item.price).toFixed(2)}</div>
+        `;
+        tabPaneItems.appendChild(div);
+    });
+}
+
+export function activateCategoryPane(category) {
+    const tabContent = document.getElementById('category-tab-content');
+    if (!tabContent) return;
+    tabContent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('show', 'active'));
+    const target = tabContent.querySelector(`#tab-${slugify(category)}`);
+    if (target) target.classList.add('show', 'active');
+}
+
+export function updateActiveTabStockBadges() {
+    const current = getCurrentOrder();
+    const countInOrder = (name) => current.filter(i => i.name === name).reduce((s, i) => s + i.quantity, 0);
+    const { menu } = getState();
+    const all = Object.values(menu || {}).flat();
+    document.querySelectorAll('#category-tab-content .tab-pane.show.active .menu-item').forEach(el => {
+        const name = el.dataset.name;
+        const stockBadge = el.querySelector('.stock-badge');
+        const item = all.find(i => i.name === name);
+        if (!name || !stockBadge || !item) return;
+        const left = Math.max(0, (item.stock || 0) - countInOrder(name));
+        stockBadge.textContent = `Stock: ${left}`;
     });
 }
 
@@ -131,11 +193,33 @@ export function displayMenuItems(category) {
 }
 
 export function renderOrderQueue(orders) {
-    orderQueueList.innerHTML = '';
+    orderQueueList.innerHTML = "";
     orders.forEach(order => {
-        const li = document.createElement('li');
-        li.className = 'queue-item';
-        const itemsHtml = order.items.map(item => `<li>${item.name} x ${item.quantity}</li>`).join('');
+        const li = document.createElement("li");
+        li.className = "queue-item";
+        const baseTime = order.timestamp ? new Date(order.timestamp) : null;
+        const getTime = (it) => it.added_at ? new Date(it.added_at) : baseTime;
+        const items = (order.items || []).slice();
+        // Group by time (minute precision) and sort
+        const groups = new Map();
+        items.forEach(it => {
+            const t = getTime(it);
+            const key = t ? `${t.getFullYear()}-${t.getMonth()}-${t.getDate()} ${t.getHours()}:${t.getMinutes()}` : "initial";
+            if (!groups.has(key)) groups.set(key, { time: t, items: [] });
+            groups.get(key).items.push(it);
+        });
+        const ordered = Array.from(groups.values()).sort((a,b)=>{
+            if (a.time && b.time) return a.time - b.time;
+            if (a.time && !b.time) return -1;
+            if (!a.time && b.time) return 1;
+            return 0;
+        });
+        const itemsHtml = ordered.map((grp, idx) => {
+            const timeLabel = grp.time ? grp.time.toLocaleTimeString() : "";
+            const header = idx === 0 ? "" : `<li class="new-items-separator">[new items added - ${timeLabel}]</li>`;
+            const lines = grp.items.map(it => `<li>${it.name} x ${it.quantity}</li>`).join("");
+            return header + lines;
+        }).join("");
         li.innerHTML = `
             <div class="queue-header">Order #${order.id} - ${order.destination}</div>
             <ul class="queue-details">${itemsHtml}</ul>
@@ -163,8 +247,36 @@ export function renderOldOrders(orders) {
     oldOrdersList.innerHTML = '';
     orders.forEach(order => {
         const li = document.createElement('li');
-        const finalTotal = order.total - order.discount;
-        li.innerHTML = `Order #${order.id} - ${new Date(order.timestamp).toLocaleString()} - Total: £${finalTotal.toFixed(2)} (Paid by ${order.payment_method})`;
+        li.className = 'card mb-3';
+
+        const itemsHtml = order.items.map(item => 
+            `<li class="list-group-item d-flex justify-content-between">
+                <span>${item.item_name} x ${item.quantity}</span>
+                <span>£${(item.price * item.quantity).toFixed(2)}</span>
+            </li>`
+        ).join('');
+
+        const finalTotal = order.total - (order.discount || 0);
+
+        li.innerHTML = `
+            <div class="card-header d-flex justify-content-between">
+                <strong>Order #${order.id}</strong>
+                <span>${new Date(order.timestamp).toLocaleString()}</span>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush mb-3">
+                    ${itemsHtml}
+                </ul>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between"><span>Subtotal</span> <span>£${order.total.toFixed(2)}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>Discount</span> <span>- £${(order.discount || 0).toFixed(2)}</span></li>
+                    <li class="list-group-item d-flex justify-content-between fw-bold"><span>Final Total</span> <span>£${finalTotal.toFixed(2)}</span></li>
+                </ul>
+            </div>
+            <div class="card-footer text-muted">
+                Paid by: ${order.payment_method}
+            </div>
+        `;
         oldOrdersList.appendChild(li);
     });
     oldOrdersModal.style.display = 'block';
@@ -199,6 +311,55 @@ export function renderZReport(report, salesChart) {
         }
     });
     zReportModal.style.display = 'block';
+}
+
+export function renderProfitLossReport(report) {
+    const resultsContainer = document.getElementById('profit-loss-results');
+    const grossProfit = report.gross_profit;
+    resultsContainer.innerHTML = `
+        <div class="card">
+            <div class="card-header">Report for ${report.start_date} to ${report.end_date}</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Revenue
+                        <span class="badge bg-success rounded-pill fs-6">£${report.total_revenue.toFixed(2)}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Cost of Goods Sold
+                        <span class="badge bg-warning rounded-pill fs-6">- £${report.total_cost.toFixed(2)}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Discounts Given
+                        <span class="badge bg-secondary rounded-pill fs-6">- £${report.total_discount.toFixed(2)}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center fw-bold fs-5">
+                        Gross Profit
+                        <span class="badge bg-primary rounded-pill fs-5">£${grossProfit.toFixed(2)}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
+export function renderAdminDashboard(summary) {
+    document.getElementById('admin-summary-sales').innerHTML = `
+        <div class="fs-4 fw-semibold">£${summary.todays_sales.toFixed(2)}</div>
+        <div>Today's Sales</div>
+    `;
+    document.getElementById('admin-summary-orders').innerHTML = `
+        <div class="fs-4 fw-semibold">${summary.todays_orders}</div>
+        <div>Today's Orders</div>
+    `;
+    document.getElementById('admin-summary-users').innerHTML = `
+        <div class="fs-4 fw-semibold">${summary.total_users}</div>
+        <div>Total Users</div>
+    `;
+    document.getElementById('admin-summary-low-stock').innerHTML = `
+        <div class="fs-4 fw-semibold">${summary.low_stock_items}</div>
+        <div>Low Stock Items</div>
+    `;
 }
 
 export function renderStockModal(menu, searchTerm = '') {
@@ -293,3 +454,4 @@ export function hideModal(modalId) {
         modal.style.display = 'none';
     }
 }
+

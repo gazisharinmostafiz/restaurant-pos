@@ -5,12 +5,12 @@ import { getState, setState, setCurrentOrder, addItemToOrder, clearCurrentOrder 
 let salesChart = null;
 
 function applyRoleBasedUI(role) {
-    const allSections = ['#menu-section', '#pending-orders-section', '#order-section', '#queue-section'];
-    const adminOnly = ['#manage-stock-sidebar-item', '#manage-users-sidebar-item', '#z-report-btn'];
-    const frontDesk = ['#menu-section', '#pending-orders-section', '#order-section', '#add-order-btn', '#view-old-orders-btn'];
+    const allSections = ['#menu-section', '#pending-orders-section', '#order-section', '#queue-section', '#admin-dashboard-section'];
+    const adminOnlySidebar = ['#manage-stock-sidebar-item', '#manage-users-sidebar-item'];
+    const adminOnlyHeader = ['#z-report-btn', '#profit-loss-btn'];
 
     // Hide everything first
-    [...allSections, ...adminOnly, '#add-order-btn', '#view-old-orders-btn'].forEach(sel => {
+    [...allSections, ...adminOnlySidebar, ...adminOnlyHeader, '#add-order-btn', '#view-old-orders-btn'].forEach(sel => {
         const el = document.querySelector(sel);
         if (el) el.style.display = 'none';
     });
@@ -19,10 +19,10 @@ function applyRoleBasedUI(role) {
     let visibleElements = [];
     switch (role) {
         case 'admin':
-            visibleElements = [...allSections, ...adminOnly, '#add-order-btn', '#view-old-orders-btn'];
+            visibleElements = ['#admin-dashboard-section', ...adminOnlySidebar, ...adminOnlyHeader];
             break;
         case 'front':
-            visibleElements = frontDesk;
+            visibleElements = ['#menu-section', '#pending-orders-section', '#order-section', '#add-order-btn', '#view-old-orders-btn'];
             break;
         case 'waiter':
             visibleElements = ['#menu-section', '#order-section', '#add-order-btn'];
@@ -39,7 +39,7 @@ function applyRoleBasedUI(role) {
 
     // Special handling for sidebar items, which are list items
     if (role === 'admin') {
-        adminOnly.forEach(sel => {
+        adminOnlySidebar.forEach(sel => {
             const el = document.querySelector(sel);
             if (el) el.style.display = 'list-item';
         });
@@ -55,6 +55,9 @@ export async function initializeApp() {
             applyRoleBasedUI(data.user.role);
             await fetchMenu();
             // Role-specific data fetching
+            if (data.user.role === 'admin') {
+                fetchAdminDashboardData();
+            }
             if (data.user.role === 'admin' || data.user.role === 'front') {
                 fetchPendingOrdersForPayment();
                 setInterval(fetchPendingOrdersForPayment, 15000);
@@ -68,6 +71,16 @@ export async function initializeApp() {
         }
     } catch (error) {
         ui.showToast('Cannot connect to server.', 'error');
+    }
+}
+
+async function fetchAdminDashboardData() {
+    try {
+        const summary = await api.getAdminDashboardSummary();
+        ui.renderAdminDashboard(summary);
+    } catch (error) {
+        console.error('Failed to fetch admin dashboard data:', error);
+        ui.showToast('Could not load admin dashboard data.', 'error');
     }
 }
 
@@ -114,6 +127,24 @@ export async function handlePlaceOrder() {
 
     const orderData = { orderType, destination, items: currentOrder };
 
+    // If table order and an existing open order for the same table exists, ask waiter to add items or create new
+    if (orderType === 'table') {
+        try {
+            const data = await api.getPendingOrders();
+            const open = (data.orders || []).find(o => (o.destination === destination) && (o.status === 'pending' || o.status === 'ready'));
+            if (open) {
+                setState({ tableOrderDecision: { existingOrderId: open.id, orderData } });
+                const modal = document.getElementById('table-order-confirm-modal');
+                const text = document.getElementById('table-order-confirm-text');
+                if (text) text.textContent = `${destination} already has an open order (#${open.id}). Add items to existing order or create a new order?`;
+                if (modal) modal.style.display = 'block';
+                return; // Wait for decision
+            }
+        } catch (err) {
+            console.error('Failed checking existing table order', err);
+        }
+    }
+
     try {
         const result = await api.placeOrder(orderData);
         if (result.orderId) {
@@ -130,10 +161,175 @@ export async function handlePlaceOrder() {
     }
 }
 
+export async function confirmAddToExistingTableOrder() {
+    const decision = (getState().tableOrderDecision) || null;
+    if (!decision) return;
+    try {
+        const res = await api.appendOrderItems(decision.existingOrderId, decision.orderData.items);
+        if (res && res.success) {
+            ui.showToast(`Items added to order #${decision.existingOrderId}.`, 'success');
+            clearCurrentOrder();
+            ui.renderOrder();
+        } else {
+            ui.showToast(res.error || 'Failed to append items.', 'error');
+        }
+    } catch (err) {
+        console.error('Append items failed:', err);
+        ui.showToast('Error connecting to server.', 'error');
+    } finally {
+        const modal = document.getElementById('table-order-confirm-modal');
+        if (modal) modal.style.display = 'none';
+    }
+}
+
+export async function confirmCreateNewTableOrder() {
+    const decision = (getState().tableOrderDecision) || null;
+    if (!decision) return;
+    try {
+        const result = await api.placeOrder(decision.orderData);
+        if (result.orderId) {
+            ui.showToast(`Order #${result.orderId} sent to the kitchen!`, 'success');
+            clearCurrentOrder();
+            ui.renderOrder();
+        } else {
+            ui.showToast(result.error || 'Failed to place order.', 'error');
+        }
+    } catch (err) {
+        console.error('Error placing order:', err);
+        ui.showToast('Error connecting to the server to place order.', 'error');
+    } finally {
+        const modal = document.getElementById('table-order-confirm-modal');
+        if (modal) modal.style.display = 'none';
+    }
+}
+
 export function handleCategorySelect(category) {
-    ui.displayMenuItems(category);
+    ui.activateCategoryPane(category);
+    ui.displayCategoryTabItems(category);
+    ui.updateActiveTabStockBadges();
     document.querySelectorAll('.menu-categories .nav-link').forEach(link => link.classList.remove('active'));
     document.querySelector(`.menu-categories .nav-link[data-category="${category}"]`).classList.add('active');
+}
+
+// --- Sales Utilities ---
+export function handleLookupAdd() {
+    const input = document.getElementById('lookup-input');
+    if (!input) return;
+    const term = (input.value || '').trim().toLowerCase();
+    if (!term) return;
+    const { menu } = getState();
+    const all = Object.values(menu || {}).flat();
+    let found = null;
+    // ID match
+    if (/^\d+$/.test(term)) {
+        const idNum = parseInt(term, 10);
+        found = all.find(i => i.id === idNum);
+    }
+    // Name contains
+    if (!found) found = all.find(i => (i.name || '').toLowerCase().includes(term));
+    if (!found) {
+        ui.showToast('Item not found.', 'error');
+        return;
+    }
+    addItemToOrder(found);
+    ui.renderOrder();
+    input.value = '';
+}
+
+export function suspendCurrentSale() {
+    const { currentOrder } = getState();
+    if (!currentOrder || !currentOrder.length) {
+        return ui.showToast('No items to suspend.', 'error');
+    }
+    const key = 'suspendedSales';
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    const ticket = {
+        id: Date.now(),
+        at: new Date().toISOString(),
+        order: currentOrder,
+    };
+    list.push(ticket);
+    localStorage.setItem(key, JSON.stringify(list));
+    clearCurrentOrder();
+    ui.renderOrder();
+    ui.showToast('Sale suspended.');
+}
+
+export function openSuspendedSalesModal() {
+    const modal = document.getElementById('suspended-sales-modal');
+    const listEl = document.getElementById('suspended-sales-list');
+    if (!modal || !listEl) return;
+    const list = JSON.parse(localStorage.getItem('suspendedSales') || '[]');
+    listEl.innerHTML = '';
+    if (!list.length) {
+        listEl.innerHTML = '<li class="list-group-item">No suspended sales.</li>';
+    } else {
+        list.forEach(t => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            const total = t.order.reduce((s, it) => s + it.price * it.quantity, 0);
+            li.innerHTML = `<span>Ticket ${t.id} — ${new Date(t.at).toLocaleString()} — Total ৳${total.toFixed(2)}</span>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" data-action="resume" data-id="${t.id}">Resume</button>
+                    <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${t.id}">Delete</button>
+                </div>`;
+            listEl.appendChild(li);
+        });
+        listEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const id = parseInt(btn.dataset.id, 10);
+            let list = JSON.parse(localStorage.getItem('suspendedSales') || '[]');
+            const idx = list.findIndex(x => x.id === id);
+            if (idx === -1) return;
+            if (btn.dataset.action === 'resume') {
+                setState({ currentOrder: list[idx].order });
+                ui.renderOrder();
+                list.splice(idx, 1);
+                localStorage.setItem('suspendedSales', JSON.stringify(list));
+                modal.style.display = 'none';
+                ui.showToast('Sale resumed.');
+            } else if (btn.dataset.action === 'delete') {
+                list.splice(idx, 1);
+                localStorage.setItem('suspendedSales', JSON.stringify(list));
+                btn.closest('li').remove();
+            }
+        }, { once: true });
+    }
+    modal.style.display = 'block';
+}
+
+function buildReceiptText(orderItems, title = 'Receipt') {
+    const lines = [title, '------------------------------'];
+    let total = 0;
+    orderItems.forEach(it => {
+        const line = `${it.name} x ${it.quantity} = ৳${(it.price * it.quantity).toFixed(2)}`;
+        total += it.price * it.quantity;
+        lines.push(line);
+    });
+    lines.push('------------------------------');
+    lines.push(`Total: ৳${total.toFixed(2)}`);
+    return lines.join('\n');
+}
+
+export function printReceipt() {
+    const { currentOrder } = getState();
+    if (!currentOrder || !currentOrder.length) return ui.showToast('No items to print.', 'error');
+    const text = buildReceiptText(currentOrder, 'Tong POS — Provisional Receipt');
+    const w = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
+    if (!w) return;
+    w.document.write(`<pre style="font-family:monospace">${text}</pre>`);
+    w.document.close();
+    w.focus();
+    w.print();
+    w.close();
+}
+
+export function emailReceipt() {
+    const { currentOrder } = getState();
+    if (!currentOrder || !currentOrder.length) return ui.showToast('No items to email.', 'error');
+    const text = encodeURIComponent(buildReceiptText(currentOrder, 'Tong POS — Receipt'));
+    window.location.href = `mailto:?subject=Your%20Tong%20POS%20Receipt&body=${text}`;
 }
 
 export function handleAddItemToOrder(itemElement) {
@@ -145,6 +341,7 @@ export function handleAddItemToOrder(itemElement) {
         if (item) {
             addItemToOrder(item);
             ui.renderOrder();
+            ui.updateActiveTabStockBadges();
             return;
         }
     }
@@ -154,6 +351,7 @@ export function handleRemoveItem(index) {
     const { currentOrder } = getState();
     currentOrder.splice(index, 1);
     ui.renderOrder();
+    ui.updateActiveTabStockBadges();
 }
 
 export function handleUpdateQuantity(index, action) {
@@ -167,6 +365,7 @@ export function handleUpdateQuantity(index, action) {
         handleRemoveItem(index);
     }
     ui.renderOrder();
+    ui.updateActiveTabStockBadges();
 }
 
 export function handleSelectPendingOrder(target) {
@@ -178,6 +377,15 @@ export function handleSelectPendingOrder(target) {
     setCurrentOrder(orderItems);
     document.getElementById('place-order-btn').disabled = true;
     ui.renderOrder();
+    (async () => {
+        try {
+            const data = await api.getPendingOrders();
+            const match = (data.orders || []).find(o => String(o.id) === String(orderId));
+            if (match && typeof match.balance !== 'undefined') {
+                setState({ selectedOrderBalance: Number(match.balance) });
+            }
+        } catch (e) {}
+    })();
 }
 
 export function openPaymentModal(method) {
@@ -200,9 +408,9 @@ export function updatePaymentDetails(reset = false) {
         amountTenderedInput.value = '';
     }
 
-    const total = currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
+    const baseDue = (typeof getState().selectedOrderBalance === 'number') ? getState().selectedOrderBalance : currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
     const discount = parseFloat(discountInput.value) || 0;
-    const finalTotal = Math.max(0, total - discount);
+    const finalTotal = Math.max(0, baseDue - discount);
     const amountTendered = parseFloat(amountTenderedInput.value) || 0;
     const changeDue = Math.max(0, amountTendered - finalTotal);
 
@@ -216,8 +424,8 @@ export async function processPayment() {
 
     const discount = parseFloat(document.getElementById('discount-amount').value) || 0;
     const amountTendered = parseFloat(document.getElementById('amount-tendered').value) || 0;
-    const total = currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
-    const finalTotal = total - discount;
+    const baseDue = (typeof getState().selectedOrderBalance === 'number') ? getState().selectedOrderBalance : currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
+    const finalTotal = Math.max(0, baseDue - discount);
 
     if (activePaymentMethod === 'cash' && amountTendered < finalTotal) {
         return ui.showToast('Cash tendered is less than the total amount due.', 'error');
@@ -256,9 +464,14 @@ export async function updateOrderStatus(orderId, status) {
     }
 }
 
-export async function fetchAndShowOldOrders(date = null) {
+export async function fetchAndShowOldOrders(date = null, paymentMethod = null) {
     try {
-        const data = await api.getCompletedOrders(date);
+        // If no filters are provided, ensure the inputs are cleared
+        if (date === null && paymentMethod === null) {
+            document.getElementById('old-orders-date-filter').value = '';
+            document.getElementById('old-orders-payment-filter').value = '';
+        }
+        const data = await api.getCompletedOrders(date, paymentMethod);
         ui.renderOldOrders(data.orders);
     } catch (err) {
         console.error('Failed to fetch old orders:', err);
@@ -383,6 +596,27 @@ export async function saveStockChanges() {
     }
 }
 
+export async function openProfitLossModal() {
+    const modal = document.getElementById('profit-loss-modal');
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('profit-loss-start-date').value = today;
+    document.getElementById('profit-loss-end-date').value = today;
+    document.getElementById('profit-loss-results').innerHTML = '';
+    modal.style.display = 'block';
+}
+
+export async function handleGenerateProfitLossReport() {
+    const startDate = document.getElementById('profit-loss-start-date').value;
+    const endDate = document.getElementById('profit-loss-end-date').value;
+    try {
+        const report = await api.getProfitLossReport(startDate, endDate);
+        ui.renderProfitLossReport(report);
+    } catch (error) {
+        ui.showToast('Failed to generate Profit/Loss report.', 'error');
+        console.error('Error generating Profit/Loss report:', error);
+    }
+}
+
 // --- Data Fetching ---
 async function fetchMenu() {
     try {
@@ -394,6 +628,7 @@ async function fetchMenu() {
         });
         setState({ menu: newMenu });
         ui.populateMenuCategories(newMenu);
+        ui.buildCategoryTabPanes(newMenu);
         if (Object.keys(newMenu).length > 0) {
             const firstCategory = Object.keys(newMenu)[0];
             handleCategorySelect(firstCategory);

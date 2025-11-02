@@ -109,6 +109,22 @@ ${process.env.DB_NAME || 'res_pos'}`);
             )
         `);
 
+        // Add optional SKU and Barcode columns to menu
+        try {
+            await connection.query(`
+                ALTER TABLE menu ADD COLUMN sku VARCHAR(64) NULL;
+            `);
+        } catch (error) {
+            if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+        }
+        try {
+            await connection.query(`
+                ALTER TABLE menu ADD COLUMN barcode VARCHAR(64) NULL;
+            `);
+        } catch (error) {
+            if (error.code !== 'ER_DUP_FIELDNAME') throw error;
+        }
+
         // Seed the menu table if it's empty
         const [menuRows] = await connection.query("SELECT COUNT(*) as count FROM menu");
         if (menuRows[0].count === 0) {
@@ -231,6 +247,78 @@ ${process.env.DB_NAME || 'res_pos'}`);
                 FOREIGN KEY (order_id) REFERENCES orders(id)
             )
         `);
+
+        // Create business day tracking and inventory snapshots
+        await safeQuery(connection, `
+            CREATE TABLE IF NOT EXISTS business_days (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                opened_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                opened_by INT,
+                closed_at DATETIME NULL,
+                closed_by INT NULL,
+                notes TEXT,
+                FOREIGN KEY (opened_by) REFERENCES users(id),
+                FOREIGN KEY (closed_by) REFERENCES users(id)
+            )
+        `);
+        await safeQuery(connection, `
+            CREATE TABLE IF NOT EXISTS inventory_snapshots (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                business_day_id INT NOT NULL,
+                item_id INT NOT NULL,
+                stock INT NOT NULL,
+                price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                cost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                taken_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                type ENUM('start','end') NOT NULL,
+                FOREIGN KEY (business_day_id) REFERENCES business_days(id),
+                FOREIGN KEY (item_id) REFERENCES menu(id),
+                INDEX (business_day_id, type)
+            )
+        `);
+
+        // Create 'customers' table
+        await safeQuery(connection, `
+            CREATE TABLE IF NOT EXISTS customers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                phone VARCHAR(50),
+                email VARCHAR(255),
+                notes TEXT,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create 'employee_shifts' table for clock in/out tracking
+        await safeQuery(connection, `
+            CREATE TABLE IF NOT EXISTS employee_shifts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                clock_in DATETIME NOT NULL,
+                clock_out DATETIME,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                INDEX (user_id, clock_in)
+            )
+        `);
+
+        // Create 'store_settings' table (single row)
+        await safeQuery(connection, `
+            CREATE TABLE IF NOT EXISTS store_settings (
+                id INT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                address TEXT,
+                phone VARCHAR(50),
+                tax_rate DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
+                logo_url TEXT
+            )
+        `);
+        // Seed default settings if empty
+        const [ssRows] = await connection.query("SELECT COUNT(*) as count FROM store_settings");
+        if (ssRows[0].count === 0) {
+            await connection.query("INSERT INTO store_settings (id, name, address, phone, tax_rate, logo_url) VALUES (1, ?, ?, ?, ?, ?)", [
+                'Tong POS', '', '', 0.0000, ''
+            ]);
+        }
 
         connection.release();
         console.log('Database tables are ready.');

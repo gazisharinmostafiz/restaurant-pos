@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Plans</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/css/coreui.min.css">
+  <link rel="stylesheet" href="../style.css">
+  <style> body{padding:20px} textarea{min-height:70px} </style>
+  <script>
+    async function api(url, opts){ const r=await fetch(url,{ credentials:'include', headers:{'Content-Type':'application/json'}, ...opts}); if(!r.ok) throw new Error((await r.json()).error||'Request failed'); return r.json(); }
+    async function load(){ const data=await api('/api/subscription-plans'); const tbody=document.querySelector('tbody'); tbody.innerHTML=''; (data.plans||[]).forEach(p=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.id}</td><td>${p.name}</td><td>£${Number(p.price).toFixed(2)}</td><td><pre class="mb-0">${p.features||''}</pre></td><td class=\"text-end\"><button class=\"btn btn-sm btn-outline-primary\" onclick=\"edit(${p.id})\">Edit</button> <button class=\"btn btn-sm btn-outline-danger\" onclick=\"del(${p.id})\">Delete</button></td>`; tbody.appendChild(tr); }); }
+    function readForm(){ return { name:document.getElementById('name').value.trim(), price: parseFloat(document.getElementById('price').value)||0, features: document.getElementById('features').value.trim() }; }
+    async function create(ev){ ev.preventDefault(); const data=readForm(); await api('/api/subscription-plans',{method:'POST', body: JSON.stringify(data)}); ev.target.reset(); load(); }
+    async function edit(id){ const name=prompt('Plan name?'); if(name==null) return; const price=parseFloat(prompt('Price?')||'0'); const features=prompt('Features JSON or text?')||''; await api('/api/subscription-plans/'+id,{method:'PUT', body: JSON.stringify({name, price, features})}); load(); }
+    async function del(id){ if(confirm('Delete?')) { await api('/api/subscription-plans/'+id,{method:'DELETE'}); load(); } }
+    window.addEventListener('DOMContentLoaded',()=>{ document.getElementById('form').addEventListener('submit',create); load(); });
+  </script>
+</head>
+<body>
+  <h3>Subscription Plans</h3>
+  <form id="form" class="row g-2 mb-3">
+    <div class="col-md-3"><input id="name" class="form-control" placeholder="Plan name" required></div>
+    <div class="col-md-2"><input id="price" type="number" step="0.01" min="0" class="form-control" placeholder="Price (£)" required></div>
+    <div class="col-md-5"><textarea id="features" class="form-control" placeholder="Features"></textarea></div>
+    <div class="col-md-2 d-grid"><button class="btn btn-primary">Add</button></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle"><thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Features</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+</body>
+</html>
+

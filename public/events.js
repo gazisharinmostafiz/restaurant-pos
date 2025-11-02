@@ -1,7 +1,7 @@
 import * as api from './api.js';
 import * as ui from './ui.js';
 import { getState, setState, setCurrentOrder, addItemToOrder, clearCurrentOrder } from './state.js';
-import * as handlers from './handlers.js';
+import * as handlers from './handlers.clean.js';
 
 export function initializeEventListeners() {
     // Element cache

@@ -268,7 +268,7 @@ export function openSuspendedSalesModal() {
             const li = document.createElement('li');
             li.className = 'list-group-item d-flex justify-content-between align-items-center';
             const total = t.order.reduce((s, it) => s + it.price * it.quantity, 0);
-            li.innerHTML = `<span>Ticket ${t.id} — ${new Date(t.at).toLocaleString()} — Total ৳${total.toFixed(2)}</span>
+            li.innerHTML = `<span>Ticket ${t.id} — ${new Date(t.at).toLocaleString()} — Total £${total.toFixed(2)}</span>
                 <div class="btn-group">
                     <button class="btn btn-sm btn-primary" data-action="resume" data-id="${t.id}">Resume</button>
                     <button class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${t.id}">Delete</button>
@@ -303,12 +303,12 @@ function buildReceiptText(orderItems, title = 'Receipt') {
     const lines = [title, '------------------------------'];
     let total = 0;
     orderItems.forEach(it => {
-        const line = `${it.name} x ${it.quantity} = ৳${(it.price * it.quantity).toFixed(2)}`;
+        const line = `${it.name} x ${it.quantity} = £${(it.price * it.quantity).toFixed(2)}`;
         total += it.price * it.quantity;
         lines.push(line);
     });
     lines.push('------------------------------');
-    lines.push(`Total: ৳${total.toFixed(2)}`);
+    lines.push(`Total: £${total.toFixed(2)}`);
     return lines.join('\n');
 }
 

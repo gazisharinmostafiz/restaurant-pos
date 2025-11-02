@@ -9,6 +9,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Compression for better performance
+try { const compression = require('compression'); app.use(compression()); } catch {}
+
 // Session Middleware
 app.use(session({
     name: 'connect.sid',
@@ -23,7 +26,8 @@ app.use(session({
     },
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Static caching (7 days, immutable for hashed assets)
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d', immutable: true }));
 app.use(bodyParser.json());
 
 // Middleware to protect routes
@@ -91,7 +95,7 @@ app.get('/api/session', (req, res) => {
 
 app.get('/api/menu', isAuthenticated, async (req, res) => {
     try {
-        const [rows] = await db.execute("SELECT id, name, price, category, stock FROM menu ORDER BY category, name");
+        const [rows] = await db.execute("SELECT id, name, price, category, stock, cost, sku, barcode FROM menu ORDER BY category, name");
         console.log('Menu data:', rows);
         res.json({ menu: rows });
     } catch (err) {
@@ -341,6 +345,7 @@ const inventoryRoutes = require('./routes/inventory');
 const customerRoutes = require('./routes/customers');
 const employeeRoutes = require('./routes/employees');
 const reportsRoutes = require('./routes/reports');
+const receiptsRoutes = require('./routes/receipts');
 const settingsRoutes = require('./routes/settings');
 const accountingRoutes = require('./routes/accounting');
 const systemRoutes = require('./routes/system');
@@ -351,7 +356,8 @@ const tableRoutes = require('./routes/tables');
 app.use('/api/inventory', isAuthenticated, inventoryRoutes);
 app.use('/api/customers', isAuthenticated, customerRoutes);
 app.use('/api/employees', isAuthenticated, employeeRoutes);
-app.use('/api/reportsx', isAuthenticated, reportsRoutes);
+app.use('/api/reports', isAuthenticated, reportsRoutes);
+app.use('/api/receipts', isAuthenticated, receiptsRoutes);
 app.use('/api/settings', isAuthenticated, settingsRoutes);
 app.use('/api/accounting', isAuthenticated, accountingRoutes);
 app.use('/api/system', isAuthenticated, systemRoutes);
@@ -442,7 +448,7 @@ app.get('/api/reports/profit-loss', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/stock', isAuthenticated, async (req, res) => {
-    const { updates } = req.body; // Expects an array of { name, stock }
+    const { updates } = req.body; // Expects an array of { id, stock } (name optional fallback)
     if (!Array.isArray(updates) || updates.length === 0) {
         return res.status(400).json({ error: 'Invalid stock update data.' });
     }
@@ -451,11 +457,21 @@ app.post('/api/stock', isAuthenticated, async (req, res) => {
     await connection.beginTransaction();
     try {
         for (const item of updates) {
-            await connection.execute("UPDATE menu SET stock = ? WHERE name = ?", [item.stock, item.name]);
+            if (!item) continue;
+            const stock = Number(item.stock);
+            const id = Number(item.id)||0;
+            const name = (item.name||'').trim();
+            if (!(stock>=0)) continue; // skip invalid
+            if (id>0) {
+                await connection.execute("UPDATE menu SET stock = ? WHERE id = ?", [stock, id]);
+            } else if (name) {
+                await connection.execute("UPDATE menu SET stock = ? WHERE name = ?", [stock, name]);
+            }
         }
         await connection.commit();
         res.json({ success: true, message: 'Stock levels updated successfully!' });
     } catch (err) {
+        console.error('Stock update failed:', err);
         await connection.rollback();
         res.status(500).json({ error: 'Failed to update stock levels.' });
     } finally {
@@ -501,9 +517,9 @@ app.get('/api/orders/completed', isAuthenticated, async (req, res) => {
 app.post('/api/menu/item', isAuthenticated, async (req, res) => {
     // Add role check for 'admin'
     if (req.session.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-    const { name, price, category, stock } = req.body;
+    const { name, price, category, stock, cost = 0, sku = null, barcode = null } = req.body;
     try {
-        await db.execute("INSERT INTO menu (name, price, category, stock) VALUES (?, ?, ?, ?)", [name, price, category, stock]);
+        await db.execute("INSERT INTO menu (name, price, category, stock, cost, sku, barcode) VALUES (?, ?, ?, ?, ?, ?, ?)", [name, price, category, stock, cost, sku, barcode]);
         res.status(201).json({ success: true, message: 'Menu item added.' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to add menu item.' });
@@ -513,9 +529,9 @@ app.post('/api/menu/item', isAuthenticated, async (req, res) => {
 app.put('/api/menu/item/:id', isAuthenticated, async (req, res) => {
     if (req.session.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
-    const { name, price, category } = req.body;
+    const { name, price, category, cost = 0, sku = null, barcode = null } = req.body;
     try {
-        await db.execute("UPDATE menu SET name = ?, price = ?, category = ? WHERE id = ?", [name, price, category, id]);
+        await db.execute("UPDATE menu SET name = ?, price = ?, category = ?, cost = ?, sku = ?, barcode = ? WHERE id = ?", [name, price, category, cost, sku, barcode, id]);
         res.json({ success: true, message: 'Menu item updated.' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update menu item.' });
@@ -831,3 +847,4 @@ app.delete('/api/businesses/:id', isAuthenticated, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+

@@ -1,13 +1,34 @@
 import * as api from './api.js';
 import * as ui from './ui.js';
 import { getState, setState } from './state.js';
-import * as handlers from './handlers.js';
+import * as handlers from './handlers.clean.js';
 
 const el = (id) => document.getElementById(id);
 
 export function renderSales() {
   // Sales uses existing Home panels; ensure menu + pending queues are active
-
+  // Re-fetch menu/categories if empty
+  const { menu } = getState();
+  if (!menu || Object.keys(menu).length === 0) {
+    // handlers.initializeApp() will call fetches based on role
+    // But to be safe, fetch menu only
+    const fetchMenuOnly = async () => {
+      try {
+        const data = await api.getMenu();
+        const newMenu = {};
+        data.menu.forEach(item => {
+          if (!newMenu[item.category]) newMenu[item.category] = [];
+          newMenu[item.category].push(item);
+        });
+        setState({ menu: newMenu });
+        ui.populateMenuCategories(newMenu);
+        ui.buildCategoryTabPanes?.(newMenu);
+        const firstCategory = Object.keys(newMenu)[0];
+        if (firstCategory) handlers.handleCategorySelect(firstCategory);
+      } catch {}
+    };
+    fetchMenuOnly();
+  }
 }
 
 export async function renderOrders() {
@@ -64,7 +85,7 @@ export async function renderOrders() {
       const bodyHtml = ordered.map((grp, idx) => {
         const timeLabel = grp.time ? grp.time.toLocaleTimeString() : '';
         const header = idx === 0 ? '' : `<div class="text-muted mb-1">[new items added - ${timeLabel}]</div>`;
-        const lines = grp.items.map(it => `<li class="list-group-item d-flex justify-content-between"><span>${it.name || it.item_name} x ${it.quantity}</span><span>৳${Number(it.price).toFixed(2)}</span></li>`).join('');
+        const lines = grp.items.map(it => `<li class=\"list-group-item d-flex justify-content-between\"><span>${it.name || it.item_name} x ${it.quantity}</span><span>£${Number(it.price).toFixed(2)}</span></li>`).join('');
         return header + `<ul class="list-group mb-2">${lines}</ul>`;
       }).join('');
 
@@ -86,7 +107,7 @@ export async function renderInventory() {
     root.innerHTML = btn + '<div class="text-muted">No items loaded. Open Manage Stock or go to Sales to load menu.</div>';
   } else {
     const rows = items.map(i => `<tr>
-      <td>${i.category}</td><td>${i.name}</td><td>৳${Number(i.price).toFixed(2)}</td><td>${i.stock}</td>
+      <td>${i.category}</td><td>${i.name}</td><td>£${Number(i.price).toFixed(2)}</td><td>${i.stock}</td>
     </tr>`).join('');
     root.innerHTML = btn + `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Category</th><th>Name</th><th>Price</th><th>Stock</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
@@ -110,68 +131,254 @@ export function renderCustomers() {
   const root = el('customers-root');
   if (!root) return;
   root.innerHTML = `
-    <div class="row g-2">
-      <div class="col-md-4"><input id="cust-name" class="form-control" placeholder="Customer Name"/></div>
-      <div class="col-md-4"><input id="cust-phone" class="form-control" placeholder="Phone"/></div>
-      <div class="col-md-4"><button id="cust-save" class="btn btn-primary w-100">Add Customer (Local)</button></div>
+    <div class="row g-2 mb-2">
+      <div class="col-md-3"><input id="cust-name" class="form-control" placeholder="Customer Name"/></div>
+      <div class="col-md-2"><input id="cust-phone" class="form-control" placeholder="Phone"/></div>
+      <div class="col-md-3"><input id="cust-email" class="form-control" placeholder="Email"/></div>
+      <div class="col-md-3"><input id="cust-notes" class="form-control" placeholder="Notes"/></div>
+      <div class="col-md-1 d-grid"><button id="cust-save" class="btn btn-primary">Add</button></div>
     </div>
-    <div id="cust-msg" class="mt-2 text-muted">This is a placeholder UI.</div>`;
-  const btn = document.getElementById('cust-save');
-  if (btn) btn.onclick = () => {
-    const name = (document.getElementById('cust-name')||{}).value || '';
-    const phone = (document.getElementById('cust-phone')||{}).value || '';
-    el('cust-msg').textContent = name ? `Saved ${name} (${phone}) locally.` : 'Enter a name.';
+    <div class="input-group mb-2">
+      <span class="input-group-text">Search</span>
+      <input id="cust-search" class="form-control" placeholder="Name / Phone / Email"/>
+      <button id="cust-search-btn" class="btn btn-outline-secondary">Go</button>
+    </div>
+    <div class="table-responsive"><table class="table table-sm" id="cust-table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Notes</th><th></th></tr></thead><tbody></tbody></table></div>`;
+  let all=[]; let page=1; const perPage=25;
+  const renderPage=()=>{ const tb=root.querySelector('#cust-table tbody'); tb.innerHTML=''; const from=(page-1)*perPage; const to=from+perPage; (all.slice(from,to)).forEach(c=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${c.name}</td><td>${c.phone||''}</td><td>${c.email||''}</td><td>${c.notes||''}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${c.id}">Edit</button> <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${c.id}">Delete</button></td>`; tb.appendChild(tr); }); };
+  const load = async (term='')=>{ try{ const r = await fetch('/api/customers'+(term?`?term=${encodeURIComponent(term)}`:'')); const d=await r.json(); all=(d.customers||[]); page=1; renderPage(); }catch{} };
+  load();
+  root.querySelector('#cust-save').onclick = async()=>{
+    const name=el('cust-name').value.trim(); const phone=el('cust-phone').value.trim(); const email=el('cust-email').value.trim(); const notes=el('cust-notes').value.trim();
+    if(!name) return;
+    try{ const r=await fetch('/api/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,email,notes})}); if(r.ok){ el('cust-name').value=''; el('cust-phone').value=''; el('cust-email').value=''; el('cust-notes').value=''; load(); } }catch{}
+  };
+  root.querySelector('#cust-search-btn').onclick = ()=> load(el('cust-search').value);
+  const pager=document.createElement('div'); pager.className='d-flex justify-content-end gap-2 my-2'; pager.innerHTML='<button id="cust-prev" class="btn btn-sm btn-outline-secondary">Prev</button><button id="cust-next" class="btn btn-sm btn-outline-secondary">Next</button>'; root.appendChild(pager); pager.querySelector('#cust-prev').onclick=()=>{ if(page>1){ page--; renderPage(); } }; pager.querySelector('#cust-next').onclick=()=>{ const max=Math.ceil(all.length/perPage); if(page<max){ page++; renderPage(); } };
+  root.querySelector('#cust-table').onclick = async (e)=>{
+    const btn = e.target.closest('button[data-act]'); if(!btn) return; const id=btn.dataset.id; const act=btn.dataset.act;
+    if (act==='del'){ if(confirm('Delete this customer?')){ await fetch('/api/customers/'+id,{method:'DELETE'}); load(); } }
+    if (act==='edit'){
+      const name=prompt('Name?'); if(name==null) return; const phone=prompt('Phone?')||''; const email=prompt('Email?')||''; const notes=prompt('Notes?')||'';
+      await fetch('/api/customers/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,phone,email,notes})}); load();
+    }
   };
 }
 
 export function renderEmployees() {
   const root = el('employees-root');
   if (!root) return;
-  root.innerHTML = `<div class="d-flex gap-2">
-    <button id="emp-clock-in" class="btn btn-success">Clock In</button>
-    <button id="emp-clock-out" class="btn btn-warning">Clock Out</button>
-  </div>
-  <div id="emp-msg" class="mt-2 text-muted">This is a placeholder UI.</div>`;
+  root.innerHTML = `<div class="row g-3">
+    <div class="col-md-4">
+      <div class="card h-100"><div class="card-header">My Shift</div><div class="card-body">
+        <div class="d-grid gap-2">
+          <button id="emp-clock-in" class="btn btn-success">Clock In</button>
+          <button id="emp-clock-out" class="btn btn-warning">Clock Out</button>
+          <div id="emp-msg" class="text-muted">Ready.</div>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-md-8">
+      <div class="card h-100"><div class="card-header">Performance (7 days)</div><div class="card-body">
+        <div class="table-responsive"><table class="table table-sm" id="emp-perf"><thead><tr><th>User</th><th>Hours</th></tr></thead><tbody></tbody></table></div>
+      </div></div>
+    </div>
+  </div>`;
   const msg = el('emp-msg');
-  el('emp-clock-in').onclick = () => msg.textContent = 'Clocked in (placeholder)';
-  el('emp-clock-out').onclick = () => msg.textContent = 'Clocked out (placeholder)';
+  const loadPerf = async()=>{ try{ const r=await fetch('/api/employees/performance'); const d=await r.json(); const tb=root.querySelector('#emp-perf tbody'); tb.innerHTML=''; (d.performance||[]).forEach(p=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.username}</td><td>${(Number(p.hours)||0).toFixed(2)}</td>`; tb.appendChild(tr); }); }catch{}};
+  el('emp-clock-in').onclick = async ()=>{ try{ const r=await fetch('/api/employees/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'in'})}); if(r.ok){ msg.textContent='Clocked in.'; loadPerf(); } }catch{ msg.textContent='Error.'; } };
+  el('emp-clock-out').onclick = async ()=>{ try{ const r=await fetch('/api/employees/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'out'})}); if(r.ok){ msg.textContent='Clocked out.'; loadPerf(); } }catch{ msg.textContent='Error.'; } };
+  loadPerf();
 }
 
 export function renderReports() {
   const root = el('reports-root');
   if (!root) return;
-  root.innerHTML = `<div class="d-flex gap-2">
-    <button id="btn-z-report" class="btn btn-info">Z-Report (Today)</button>
-    <button id="btn-pl" class="btn btn-secondary">Profit/Loss</button>
-  </div>`;
-  el('btn-z-report').onclick = handlers.generateZReport;
-  el('btn-pl').onclick = handlers.openProfitLossModal;
+  root.innerHTML = `
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header">Sales Summary</div>
+          <div class="card-body">
+            <label class="form-label">Period</label>
+            <select id="report-period" class="form-select mb-2">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            <button id="run-sales-summary" class="btn btn-primary w-100">Run</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header">Product Performance</div>
+          <div class="card-body">
+            <label class="form-label">Start</label>
+            <input id="prod-start" type="date" class="form-control mb-2"/>
+            <label class="form-label">End</label>
+            <input id="prod-end" type="date" class="form-control mb-2"/>
+            <button id="run-product-performance" class="btn btn-secondary w-100">Run</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header">Category Sales</div>
+          <div class="card-body">
+            <label class="form-label">Start</label>
+            <input id="cat-start" type="date" class="form-control mb-2"/>
+            <label class="form-label">End</label>
+            <input id="cat-end" type="date" class="form-control mb-2"/>
+            <button id="run-category-sales" class="btn btn-outline-primary w-100">Run</button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12">
+        <div class="card h-100">
+          <div class="card-header">Business Day</div>
+          <div class="card-body">
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <button id="btn-start-day" class="btn btn-success">Start Day (Snapshot)</button>
+              <button id="btn-close-day" class="btn btn-warning">Close Day (Snapshot)</button>
+              <button id="btn-estimate-sales" class="btn btn-outline-primary">Estimate Sales from Stock</button>
+            </div>
+            <div id="estimate-output" class="small text-muted">Start or close the day to snapshot inventory, then run estimate.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="reports-output"></div>
+  `;
+  const out = el('reports-output');
+  const currency = '£';
+  const btn1 = el('run-sales-summary');
+  const btn2 = el('run-product-performance');
+  const btn3 = el('run-category-sales');
+  if (btn1) btn1.onclick = async () => {
+    const period = (el('report-period').value || 'daily');
+    out.innerHTML = '<div class="text-muted">Running report…</div>';
+    try {
+      const res = await fetch(`/api/reports/sales-summary?period=${encodeURIComponent(period)}`);
+      const data = await res.json();
+      const rows = (data.data||[]).map(r=>({
+        Label: r.label,
+        Sales: `${currency}${Number(r.sales||0).toFixed(2)}`,
+        'Cash Sales': `${currency}${Number(r.cash_sales||0).toFixed(2)}`,
+        'Card Sales': `${currency}${Number(r.card_sales||0).toFixed(2)}`,
+      }));
+      renderTable(out, ['Label','Sales','Cash Sales','Card Sales'], rows);
+      // chart
+      const totals = (data.data||[]).slice().reverse();
+      const cvs = document.createElement('canvas'); cvs.height=120; out.appendChild(cvs);
+      const ctx = cvs.getContext('2d');
+      new Chart(ctx, { type:'line', data:{ labels: totals.map(x=>x.label), datasets:[{ label:'Sales', data: totals.map(x=>Number(x.sales||0)), borderColor:'#0d6efd', backgroundColor:'rgba(13,110,253,0.2)', tension:0.2 }]}, options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true }}}});
+      // CSV export
+      const btn = document.createElement('button'); btn.className='btn btn-sm btn-outline-secondary mt-2'; btn.textContent='Export CSV'; btn.onclick=()=>{
+        const header=['Label','Sales','Cash Sales','Card Sales'];
+        const lines=[header.join(',')].concat(rows.map(r=> header.map(h=> String(r[h]).replaceAll(',', ' ')).join(',')));
+        const blob=new Blob([lines.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`sales-summary-${period}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      }; out.appendChild(btn);
+    } catch { out.innerHTML = '<div class="text-danger">Failed to load sales summary.</div>'; }
+  };
+  if (btn2) btn2.onclick = async () => {
+    const s = el('prod-start').value; const e = el('prod-end').value;
+    const qs = new URLSearchParams(); if (s) qs.append('startDate', s); if (e) qs.append('endDate', e);
+    out.innerHTML = '<div class="text-muted">Running report…</div>';
+    try {
+      const res = await fetch(`/api/reports/product-performance${qs.toString()?`?${qs.toString()}`:''}`);
+      const data = await res.json();
+      const rows = (data.products||[]).map(r=>({ Name: r.name, Quantity: r.quantity, Revenue: `${currency}${Number(r.revenue||0).toFixed(2)}` }));
+      renderTable(out, ['Name','Quantity','Revenue'], rows);
+    } catch { out.innerHTML = '<div class="text-danger">Failed to load product performance.</div>'; }
+  };
+  if (btn3) btn3.onclick = async () => {
+    const s = el('cat-start').value; const e = el('cat-end').value;
+    const qs = new URLSearchParams(); if (s) qs.append('startDate', s); if (e) qs.append('endDate', e);
+    out.innerHTML = '<div class="text-muted">Running report…</div>';
+    try {
+      const res = await fetch(`/api/reports/category-sales${qs.toString()?`?${qs.toString()}`:''}`);
+      const data = await res.json();
+      const rows = (data.categories||[]).map(r=>({ Category: r.category, Quantity: r.quantity, Revenue: `${currency}${Number(r.revenue||0).toFixed(2)}` }));
+      renderTable(out, ['Category','Quantity','Revenue'], rows);
+    } catch { out.innerHTML = '<div class="text-danger">Failed to load category sales.</div>'; }
+  };
+  // Business Day buttons
+  const estOut = el('estimate-output');
+  const startBtn = el('btn-start-day');
+  const closeBtn = el('btn-close-day');
+  const estBtn = el('btn-estimate-sales');
+  if (startBtn) startBtn.onclick = async ()=>{ estOut.textContent='Starting day…'; try{ const r=await fetch('/api/reports/start-day',{method:'POST'}); const d=await r.json(); if (r.ok) estOut.textContent = `Business day started (ID ${d.businessDayId}).`; else estOut.textContent = d.error||'Failed to start day.'; }catch{ estOut.textContent='Failed to start day.'; }};
+  if (closeBtn) closeBtn.onclick = async ()=>{ estOut.textContent='Closing day…'; try{ const r=await fetch('/api/reports/close-day',{method:'POST'}); const d=await r.json(); if (r.ok) estOut.textContent = `Business day closed (ID ${d.businessDayId}).`; else estOut.textContent = d.error||'Failed to close day.'; }catch{ estOut.textContent='Failed to close day.'; }};
+  if (estBtn) estBtn.onclick = async ()=>{ estOut.textContent='Estimating…'; try{ const r=await fetch('/api/reports/estimate-sales'); const d=await r.json(); if (!r.ok){ estOut.textContent=d.error||'Estimate failed.'; return; } const rows=(d.items||[]).map(x=>({ ItemId:x.item_id, 'Start':x.start_stock, 'End':x.end_stock, Sold:x.sold_qty, Price:`£${Number(x.price).toFixed(2)}`, Revenue:`£${Number(x.est_revenue).toFixed(2)}`, Cost:`£${Number(x.est_cost).toFixed(2)}` })); renderTable(estOut, ['ItemId','Start','End','Sold','Price','Revenue','Cost'], rows); const tot=d.totals||{sold_qty:0,est_revenue:0,est_cost:0,est_gross:0}; const footer=document.createElement('div'); footer.className='mt-2'; footer.innerHTML = `<strong>Sold Items:</strong> ${tot.sold_qty} &nbsp; <strong>Est Revenue:</strong> £${Number(tot.est_revenue).toFixed(2)} &nbsp; <strong>Est Cost:</strong> £${Number(tot.est_cost).toFixed(2)} &nbsp; <strong>Est Gross:</strong> £${Number(tot.est_gross).toFixed(2)}`; estOut.appendChild(footer); }catch{ estOut.textContent='Estimate failed.'; }};
+}
+
+function renderTable(container, headers, rows){
+  if (!rows || !rows.length){ container.innerHTML = '<div class="text-muted">No data.</div>'; return; }
+  let filtered = rows.slice();
+  let page = 1; const perPage = 25;
+  const controls = document.createElement('div');
+  controls.className='d-flex justify-content-between align-items-center mb-2';
+  controls.innerHTML = `<div class="input-group" style="max-width:320px"><span class="input-group-text">Filter</span><input id="rpt-filter" class="form-control" placeholder="Search..."/></div><div><button id="rpt-prev" class="btn btn-sm btn-outline-secondary me-1">Prev</button><button id="rpt-next" class="btn btn-sm btn-outline-secondary">Next</button></div>`;
+  const tableWrap = document.createElement('div'); tableWrap.className='table-responsive';
+  const table = document.createElement('table'); table.className='table table-sm table-striped';
+  tableWrap.appendChild(table);
+  container.innerHTML=''; container.appendChild(controls); container.appendChild(tableWrap);
+  const renderPage = ()=>{
+    const from = (page-1)*perPage; const to = from+perPage;
+    const pageRows = filtered.slice(from,to);
+    const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+    const tbody = `<tbody>${pageRows.map(r=> `<tr>${headers.map(h=>`<td>${r[h]??''}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    table.innerHTML = thead+tbody;
+  };
+  const filterEl = controls.querySelector('#rpt-filter');
+  filterEl.addEventListener('input', ()=>{ const q=filterEl.value.toLowerCase(); filtered = rows.filter(row=> headers.some(h=> String(row[h]||'').toLowerCase().includes(q))); page=1; renderPage(); });
+  controls.querySelector('#rpt-prev').addEventListener('click', ()=>{ if (page>1){ page--; renderPage(); }});
+  controls.querySelector('#rpt-next').addEventListener('click', ()=>{ const max = Math.ceil(filtered.length/perPage); if (page<max){ page++; renderPage(); }});
+  renderPage();
 }
 
 export function renderSettings() {
   const root = el('settings-root');
   if (!root) return;
-  root.innerHTML = `<ul class="list-group">
-    <li class="list-group-item">Store Information</li>
-    <li class="list-group-item">Tax Configuration</li>
-    <li class="list-group-item">Payment Methods Setup</li>
-    <li class="list-group-item">Receipt Templates</li>
-    <li class="list-group-item">Discounts & Promotions</li>
-    <li class="list-group-item">Loyalty Program Rules</li>
-    <li class="list-group-item">Security & Permissions</li>
-  </ul>`;
+  root.innerHTML = `<div class="row g-3">
+    <div class="col-md-7">
+      <div class="card h-100"><div class="card-header">Store Information</div><div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-6"><label class="form-label">Name</label><input id="set-name" class="form-control"/></div>
+          <div class="col-md-6"><label class="form-label">Phone</label><input id="set-phone" class="form-control"/></div>
+          <div class="col-md-12"><label class="form-label">Address</label><textarea id="set-address" class="form-control" rows="2"></textarea></div>
+          <div class="col-md-4"><label class="form-label">Tax Rate (%)</label><input id="set-tax" type="number" step="0.01" min="0" class="form-control"/></div>
+          <div class="col-md-8"><label class="form-label">Logo URL</label><input id="set-logo" class="form-control"/></div>
+          <div class="col-12 d-grid"><button id="set-save" class="btn btn-primary">Save Settings</button></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="col-md-5">
+      <div class="card h-100"><div class="card-header">Payment Methods</div><div class="card-body" id="settings-methods">Loading…</div></div>
+    </div>
+  </div>`;
+  (async()=>{
+    try{ const s=await fetch('/api/settings/store'); const d=await s.json(); window.storeInfo={ name:d.name||'', address:d.address||'', phone:d.phone||'', taxRate: Number(d.tax_rate)||0, logoUrl: d.logo_url||'' }; el('set-name').value=d.name||''; el('set-phone').value=d.phone||''; el('set-address').value=d.address||''; el('set-tax').value = ((Number(d.tax_rate)||0)*100).toFixed(2); el('set-logo').value=d.logo_url||''; }catch{ }
+    try{ const s=await fetch('/api/settings/payment-methods'); const d=await s.json(); el('settings-methods').innerHTML = (d.methods||[]).map(m=>`<span class="badge text-bg-secondary me-1">${m}</span>`).join('') || 'None'; }catch{ el('settings-methods').textContent='Failed to load.'; }
+  })();
+  el('set-save').onclick = async ()=>{
+    const payload = { name: el('set-name').value, address: el('set-address').value, phone: el('set-phone').value, tax_rate: (parseFloat(el('set-tax').value)||0)/100, logo_url: el('set-logo').value };
+    try{ const r=await fetch('/api/settings/store',{ method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}); if (r.ok){ window.storeInfo={ name:payload.name, address:payload.address, phone:payload.phone, taxRate: payload.tax_rate, logoUrl: payload.logo_url }; alert('Settings saved.'); } else { const e=await r.json(); alert(e.error||'Failed to save'); } }catch{ alert('Failed to save settings'); }
+  };
 }
 
 export function renderAccounting() {
   const root = el('accounting-root');
   if (!root) return;
-  root.innerHTML = `<ul class="list-group">
-    <li class="list-group-item">Open/Close Register</li>
-    <li class="list-group-item">Cash Drops</li>
-    <li class="list-group-item">End of Day Reconciliation</li>
-    <li class="list-group-item">Refund Tracking</li>
-    <li class="list-group-item">Gift Card Balances</li>
-  </ul>`;
+  root.innerHTML = `<div class="row g-3">
+    <div class="col-md-6"><div class="card h-100"><div class="card-header">Cash Management</div><div class="card-body" id="acct-cash">Loading…</div></div></div>
+    <div class="col-md-6"><div class="card h-100"><div class="card-header">End of Day</div><div class="card-body" id="acct-eod">Loading…</div></div></div>
+  </div>`;
+  (async()=>{
+    try{ const r=await fetch('/api/accounting/cash-management'); const d=await r.json(); el('acct-cash').innerHTML = `<div><strong>Register Open:</strong> ${d.open?'Yes':'No'}</div><div><strong>Cash Drops:</strong> ${(d.drops||[]).length}</div>`; }catch{ el('acct-cash').textContent='Failed to load.'; }
+    try{ const r=await fetch('/api/accounting/eod'); const d=await r.json(); el('acct-eod').innerHTML = `<div><strong>Reconciled:</strong> ${d.reconciled?'Yes':'No'}</div>`; }catch{ el('acct-eod').textContent='Failed to load.'; }
+  })();
 }
 
 export function renderSystem() {
@@ -193,7 +400,10 @@ export function renderSystem() {
 export function renderHelp() {
   const root = el('help-root');
   if (!root) return;
-  root.innerHTML = `<div>See User Guide and Training Mode in Help. (Placeholder)</div>`;
+  root.innerHTML = `<div id="help-content">Loading…</div>`;
+  (async()=>{
+    try{ const g=await fetch('/api/help/guide'); const d=await g.json(); const t=await fetch('/api/help/training'); const td=await t.json(); el('help-content').innerHTML = `<div><a href="${d.url}" target="_blank" rel="noopener">User Guide</a></div><div>Training Mode: ${td.mode?'On':'Off'}</div>`; }catch{ el('help-content').textContent='Failed to load.'; }
+  })();
 }
 
 export function renderMenuMgmt() {
@@ -217,18 +427,71 @@ export function renderMenuMgmt() {
 export async function renderTables() {
   const root = el('tables-root');
   if (!root) return;
-  root.innerHTML = '<div class="text-muted">Floor plan coming soon.</div>';
+  root.innerHTML = '<div class="text-muted">Loading tables…</div>';
+  try{
+    const data = await api.getPendingOrders();
+    const pending = data.orders||[];
+    const tables = Array.from({length:12},(_,i)=> i+1);
+    const cards = tables.map(n=>{
+      const label = `Table ${n}`;
+      const open = pending.filter(o=> (o.destination||'').toLowerCase()===label.toLowerCase());
+      const ids = open.map(o=>`#${o.id}`).join(', ');
+      const badge = open.length? `<span class="badge text-bg-warning">Open: ${ids}</span>` : `<span class="badge text-bg-success">Free</span>`;
+      const actions = `
+        <div class=\"mt-2 d-flex gap-2\">
+          <button class=\"btn btn-sm btn-primary\" data-act=\"new\" data-table=\"${n}\">New Order</button>
+          <button class=\"btn btn-sm btn-outline-secondary\" data-act=\"append\" data-table=\"${n}\" ${open.length?'' :'disabled'}>Add to Existing</button>
+        </div>`;
+      return `<div class=\"col-sm-6 col-md-4 col-lg-3\"><div class=\"card mb-3\"><div class=\"card-body\"><div class=\"d-flex justify-content-between align-items-center\"><div>${label}</div><div>${badge}</div></div>${actions}</div></div></div>`;
+    }).join('');
+    root.innerHTML = `<div class="row">${cards}</div>`;
+    // wire actions
+    root.onclick = async (e)=>{
+      const btn = e.target.closest('button[data-act]'); if(!btn) return; const table = btn.getAttribute('data-table'); const act = btn.getAttribute('data-act');
+      // switch to Sales
+      window.location.hash = '#/sales';
+      // set order type to table + table number
+      const typeSel = document.getElementById('order-type-select'); if (typeSel) { typeSel.value = 'table'; const ev=new Event('change'); typeSel.dispatchEvent(ev); }
+      const tableSel = document.getElementById('table-select'); if (tableSel) tableSel.value = String(table);
+      if (act==='append') {
+        // hint auto-append on place
+        try { const mod = await import('./api.js'); } catch {}
+        // use global state through handlers.clean.js
+        try { const st = await import('./state.js'); st.setState({ preferAppend: true }); } catch {}
+      }
+    };
+  } catch {
+    root.innerHTML = '<div class="text-danger">Failed to load tables.</div>';
+  }
 }
 
 export async function renderKitchen() {
   const root = el('kitchen-root');
   if (!root) return;
-  root.innerHTML = '<div class="text-muted">Loading queue…</div>';
+  root.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="btn-group" role="group" aria-label="Kitchen Filters">
+      <button class="btn btn-sm btn-outline-secondary active" data-kf="pending">Pending</button>
+      <button class="btn btn-sm btn-outline-secondary" data-kf="ready">Ready</button>
+      <button class="btn btn-sm btn-outline-secondary" data-kf="all">All</button>
+    </div>
+    <div class="text-muted small">Kitchen Queue</div>
+  </div>
+  <div class="text-muted">Loading queue…</div>`;
   try {
     const data = await api.getPendingOrders();
-    const kitchenOrders = (data.orders || []).filter(o => o.status === 'pending');
-    ui.renderOrderQueue(kitchenOrders);
-    root.innerHTML = '<div class="text-muted">Queue shown below in Home/Kitchen view.</div>';
+    const all = (data.orders || []);
+    const renderBy = (mode)=>{
+      let list = all;
+      if (mode==='pending') list = all.filter(o=>o.status==='pending');
+      else if (mode==='ready') list = all.filter(o=>o.status==='ready');
+      ui.renderOrderQueue(list);
+    };
+    renderBy('pending');
+    root.querySelectorAll('button[data-kf]').forEach(btn=> btn.addEventListener('click', (e)=>{
+      root.querySelectorAll('button[data-kf]').forEach(b=>b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      renderBy(e.currentTarget.getAttribute('data-kf'));
+    }));
   } catch {
     root.innerHTML = '<div class="text-danger">Failed to load queue.</div>';
   }

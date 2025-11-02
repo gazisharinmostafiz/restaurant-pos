@@ -154,7 +154,10 @@
                                 </div>
                             </div>
                             <div id="pending-orders-section" class="card mb-4">
-                                <div class="card-header">Pending Orders (for Payment)</div>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span>Pending Orders (for Payment)</span>
+                                    <button id="pay-selected-btn" class="btn btn-sm btn-primary" onclick="handlers.openPaySelectedModal()">Pay Selected</button>
+                                </div>
                                 <div class="card-body">
                                     <ul id="pending-orders-list" class="list-group"></ul>
                                 </div>
@@ -255,6 +258,35 @@
     </div>
 </div>
 
+<!-- Pay Selected Orders Modal -->
+<div id="pay-selected-modal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pay Selected Orders</h5>
+                <button type="button" class="btn-close close-btn"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">Method:</div>
+                <div class="d-flex gap-2 mb-3">
+                    <label class="form-check form-check-inline"><input type="radio" name="pay-selected-method" value="cash" class="form-check-input" checked> Cash</label>
+                    <label class="form-check form-check-inline"><input type="radio" name="pay-selected-method" value="card" class="form-check-input"> Card</label>
+                    <label class="form-check form-check-inline"><input type="radio" name="pay-selected-method" value="mobile" class="form-check-input"> Mobile</label>
+                    <label class="form-check form-check-inline"><input type="radio" name="pay-selected-method" value="gift" class="form-check-input"> Gift</label>
+                    <label class="form-check form-check-inline"><input type="radio" name="pay-selected-method" value="loyalty" class="form-check-input"> Loyalty</label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Optional Amount (distribute across orders)</label>
+                    <input id="pay-selected-amount" type="number" class="form-control" min="0" step="0.01" placeholder="Leave empty to pay full due">
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="pay-selected-full-btn" class="btn btn-success w-50" onclick="handlers.processPaySelectedFull()">Pay Full</button>
+                    <button id="pay-selected-partial-btn" class="btn btn-outline-success w-50" onclick="handlers.processPaySelectedPartial()">Pay Amount</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Order View Modal (Orders tab) -->
 <div id="order-view-modal" class="modal">
     <div class="modal-dialog">
@@ -297,18 +329,22 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3 fs-4 text-center">
-                    <strong>Total Due:</strong> <span id="payment-total-due" class="text-success">Â£0.00</span>
+                    <strong>Total Due:</strong> <span id="payment-total-due" class="text-success">£0.00</span>
                 </div>
                 <div class="input-group mb-3">
-                    <span class="input-group-text">Discount (Â£)</span>
-                    <input type="number" id="discount-amount" class="form-control" placeholder="0.00" step="0.01" min="0">
+                    <span class="input-group-text">Discount (%)</span>
+                    <input type="number" id="discount-percent" placeholder="0" class="form-control" placeholder="0.00" step="0.01" min="0">
                 </div>
                 <div class="input-group mb-3">
-                    <span class="input-group-text">Tendered (Â£)</span>
+                    <span class="input-group-text">Discount (£)</span>
+                    <input type="number" id="discount-cash" class="form-control" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Tendered (£)</span>
                     <input type="number" id="amount-tendered" class="form-control" placeholder="0.00" step="0.01" min="0">
                 </div>
                  <div class="mb-3 fs-5 text-center">
-                    <strong>Change Due:</strong> <span id="payment-change-due">Â£0.00</span>
+                    <strong>Change Due:</strong> <span id="payment-change-due">£0.00</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -472,6 +508,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/js/coreui.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Your Custom Script -->
-    <script type="module" src="main.js"></script>
+    <script type="module" src="app/main.js"></script>
 </body>
 </html>
+
+

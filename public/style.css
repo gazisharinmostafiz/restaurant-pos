@@ -59,6 +59,35 @@ body {
         flex-direction: row;
     }
 
+/* Enhanced Login Page */
+#login-screen {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+.login-container {
+    width: 100%;
+    max-width: 380px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+.login-container h2 { margin-bottom: 16px; text-align: center; }
+.login-container .btn-primary {
+    background: #0d6efd;
+    border: none;
+    transition: transform .06s ease, box-shadow .12s ease;
+}
+.login-container .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(13,110,253,.35); }
+
+/* Kitchen queue extras */
+.queue-header .badge { font-size: .75rem; }
+.new-items-separator { color: #6c757d; list-style: none; margin: 6px 0; }
+
     #login-screen {
         justify-content: center;
         align-items: center;
@@ -126,6 +155,59 @@ body {
     margin-left: var(--cui-sidebar-width, 256px);
 }
 
+/* -----------------------------
+   Responsive Enhancements
+   ----------------------------- */
+
+/* Core layout: stack columns on tablets/phones */
+@media (max-width: 991.98px) {
+    .wrapper {
+        margin-left: 0; /* do not reserve space for sidebar */
+    }
+    #order-section,
+    #menu-section,
+    #pending-orders-section {
+        width: 100% !important;
+    }
+    .header-actions .btn { padding: .25rem .5rem; font-size: .8rem; }
+}
+
+/* Category bar: make it horizontally scrollable on narrow screens */
+@media (max-width: 767.98px) {
+    .category-bar {
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 6px;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .category-bar .nav-item { display: inline-block; }
+    .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+}
+
+/* Pending orders list: tighten spacing and improve readability on mobile */
+@media (max-width: 575.98px) {
+    #pending-orders-list .list-group-item { padding: .5rem .75rem; }
+    #pending-orders-section .card-header .btn { padding: .25rem .5rem; font-size: .8rem; }
+}
+
+/* Sidebar: compact mode on small screens (icons only feel) */
+@media (max-width: 991.98px) {
+    .sidebar-modern .nav-link { padding: .5rem .5rem; gap: 6px; }
+    .sidebar-modern .nav-title { margin: 4px 8px; font-size: .8rem; }
+    .sidebar-modern .brand-text { display: none; }
+}
+
+/* Payment modal: align inputs nicely on small screens */
+@media (max-width: 575.98px) {
+    #payment-modal .input-group-text { min-width: 110px; }
+}
+
+/* Buttons: avoid overflow */
+@media (max-width: 420px) {
+    .order-actions .btn { font-size: .85rem; padding: .375rem .5rem; }
+}
+
 /* POS Tabs under header */
 .pos-tabs-nav {
     border-top: 1px solid rgba(0,0,0,0.06);
@@ -152,15 +234,16 @@ body {
         gap: 16px;
     }
 
-    .menu-item {
-        background: linear-gradient(180deg, #ffffff, #f7f9fc);
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid #e6e9ef;
-        cursor: pointer;
-        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-        text-align: center;
-    }
+.menu-item {
+    background: linear-gradient(180deg, #ffffff, #f7f9fc);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #e6e9ef;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    text-align: center;
+}
+.menu-item.disabled { opacity: .45; pointer-events: none; filter: grayscale(0.2); }
 
     .menu-item:hover {
         transform: translateY(-4px);

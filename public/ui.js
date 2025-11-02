@@ -149,7 +149,7 @@ export function displayCategoryTabItems(category) {
         div.innerHTML = `
             <div class="item-name">${item.name}</div>
             <div class="item-meta"><span class="stock-badge">Stock: ${item.stock}</span></div>
-            <div class="item-price">��${Number(item.price).toFixed(2)}</div>
+            <div class="item-price">£${Number(item.price).toFixed(2)}</div>
         `;
         tabPaneItems.appendChild(div);
     });
@@ -193,8 +193,10 @@ export function displayMenuItems(category) {
 }
 
 export function renderOrderQueue(orders) {
+    const bumpedKey = 'kdsBumped';
+    const bumped = new Set(JSON.parse(localStorage.getItem(bumpedKey)||'[]'));
     orderQueueList.innerHTML = "";
-    orders.forEach(order => {
+    orders.filter(o=>!bumped.has(o.id)).forEach(order => {
         const li = document.createElement("li");
         li.className = "queue-item";
         const baseTime = order.timestamp ? new Date(order.timestamp) : null;
@@ -214,6 +216,8 @@ export function renderOrderQueue(orders) {
             if (!a.time && b.time) return 1;
             return 0;
         });
+        const ageMin = baseTime ? Math.floor((Date.now()-baseTime.getTime())/60000) : 0;
+        const ageBadge = `<span class="badge bg-warning ms-2">${ageMin}m</span>`;
         const itemsHtml = ordered.map((grp, idx) => {
             const timeLabel = grp.time ? grp.time.toLocaleTimeString() : "";
             const header = idx === 0 ? "" : `<li class="new-items-separator">[new items added - ${timeLabel}]</li>`;
@@ -221,13 +225,32 @@ export function renderOrderQueue(orders) {
             return header + lines;
         }).join("");
         li.innerHTML = `
-            <div class="queue-header">Order #${order.id} - ${order.destination}</div>
+            <div class="queue-header">Order #${order.id} - ${order.destination} ${ageBadge}</div>
             <ul class="queue-details">${itemsHtml}</ul>
-            <div class="queue-footer">
+            <div class="queue-footer d-flex gap-2">
                 <button class="btn btn-sm btn-success mark-ready-btn" data-order-id="${order.id}">Mark as Ready</button>
+                <button class="btn btn-sm btn-outline-secondary bump-btn" data-order-id="${order.id}">Bump</button>
             </div>`;
         orderQueueList.appendChild(li);
     });
+    // bumped list (restore)
+    const bumpedWrap = document.createElement('div');
+    bumpedWrap.className = 'mt-3';
+    if (bumped.size){
+        const arr = Array.from(bumped.values());
+        bumpedWrap.innerHTML = `<div class="text-muted mb-1">Bumped: ${arr.map(id=>`#${id}`).join(', ')}</div><button id="restore-bumped" class="btn btn-sm btn-outline-primary">Restore All</button>`;
+        orderQueueList.appendChild(bumpedWrap);
+        const btn = bumpedWrap.querySelector('#restore-bumped');
+        btn.addEventListener('click', ()=>{ localStorage.setItem(bumpedKey, '[]'); if (typeof window.fetchOrderQueue==='function') window.fetchOrderQueue(); });
+    }
+    // delegate bump clicks
+    orderQueueList.addEventListener('click', (e)=>{
+        const b = e.target.closest('.bump-btn');
+        if (!b) return;
+        const id = parseInt(b.getAttribute('data-order-id'),10);
+        bumped.add(id); localStorage.setItem(bumpedKey, JSON.stringify(Array.from(bumped.values())));
+        if (typeof window.fetchOrderQueue==='function') window.fetchOrderQueue();
+    }, { once: true });
 }
 
 export function renderPendingOrders(orders) {
@@ -238,7 +261,9 @@ export function renderPendingOrders(orders) {
         li.className = 'list-group-item pending-order-item';
         li.dataset.orderId = order.id;
         li.dataset.items = JSON.stringify(order.items);
-        li.innerHTML = `Order #${order.id} - ${order.destination} - <strong>£${total.toFixed(2)}</strong>`;
+        const balance = (typeof order.balance === 'number') ? Number(order.balance) : total;
+        li.dataset.balance = String(balance);
+        li.innerHTML = `Order #${order.id} - ${order.destination} - <strong>Due £${balance.toFixed(2)}</strong>`;
         pendingOrdersList.appendChild(li);
     });
 }
@@ -365,6 +390,26 @@ export function renderAdminDashboard(summary) {
 export function renderStockModal(menu, searchTerm = '') {
     stockListAccordion.innerHTML = '';
     const lowercasedFilter = searchTerm.toLowerCase();
+    // Ensure extended fields exist on the form (SKU, Barcode, Cost)
+    const form = document.getElementById('menu-item-form');
+    if (form && !document.getElementById('menu-item-sku')){
+        const container = document.createElement('div');
+        container.className = 'row';
+        container.innerHTML = `
+            <div class="col-md-4 mb-3">
+                <label for="menu-item-sku" class="form-label">SKU</label>
+                <input type="text" id="menu-item-sku" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="menu-item-barcode" class="form-label">Barcode</label>
+                <input type="text" id="menu-item-barcode" class="form-control">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="menu-item-cost" class="form-label">Cost (£)</label>
+                <input type="number" id="menu-item-cost" step="0.01" min="0" class="form-control" value="0">
+            </div>`;
+        form.appendChild(container);
+    }
 
     Object.keys(menu).sort().forEach((category, index) => {
         const filteredItems = menu[category].filter(item => 
@@ -381,7 +426,7 @@ export function renderStockModal(menu, searchTerm = '') {
                 <span class="stock-item-name">${item.name}</span>
                 <div class="stock-item-controls input-group">
                     <button class="btn btn-outline-secondary stock-adj-btn" data-action="decrease">-</button>
-                    <input type="number" class="form-control stock-quantity-input" value="${item.stock}" data-name="${item.name}" min="0">
+                    <input type="number" class="form-control stock-quantity-input" value="${item.stock}" data-name="${item.name}" data-id="${item.id}" min="0">
                     <button class="btn btn-outline-secondary stock-adj-btn" data-action="increase">+</button>
                     <button class="btn btn-outline-primary set-stock-btn">Set</button>
                     <button class="btn btn-outline-info edit-item-btn">Edit</button>
@@ -415,11 +460,15 @@ export function populateMenuItemForm(item) {
     document.getElementById('menu-item-price').value = item.price;
     document.getElementById('menu-item-category').value = item.category;
     document.getElementById('menu-item-stock').value = item.stock;
+    if (document.getElementById('menu-item-sku')) document.getElementById('menu-item-sku').value = item.sku || '';
+    if (document.getElementById('menu-item-barcode')) document.getElementById('menu-item-barcode').value = item.barcode || '';
+    if (document.getElementById('menu-item-cost')) document.getElementById('menu-item-cost').value = (item.cost!=null? item.cost:0);
 }
 
 export function clearMenuItemForm() {
     document.getElementById('menu-item-form').reset();
     document.getElementById('menu-item-id').value = '';
+    if (document.getElementById('menu-item-cost')) document.getElementById('menu-item-cost').value = '0';
 }
 
 export function filterStockItems() {
@@ -454,4 +503,3 @@ export function hideModal(modalId) {
         modal.style.display = 'none';
     }
 }
-

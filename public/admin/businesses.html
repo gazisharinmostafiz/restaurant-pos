@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Businesses</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/css/coreui.min.css">
+  <link rel="stylesheet" href="../style.css">
+  <style> body{padding:20px} </style>
+  <script>
+    async function api(url, opts){ const r=await fetch(url,{ credentials:'include', headers:{'Content-Type':'application/json'}, ...opts}); if(!r.ok) throw new Error((await r.json()).error||'Request failed'); return r.json(); }
+    async function load(){
+      const catsP = api('/api/business-categories');
+      const plansP = api('/api/subscription-plans');
+      const data = await api('/api/businesses');
+      const cats=(await catsP).categories||[]; const plans=(await plansP).plans||[];
+      const tbody=document.querySelector('tbody'); tbody.innerHTML='';
+      data.businesses.forEach(b=>{ const tr=document.createElement('tr'); const cat=cats.find(c=>c.id===b.category_id); const plan=plans.find(p=>p.id===b.subscription_plan_id); tr.innerHTML=`<td>${b.id}</td><td>${b.name}</td><td>${cat?cat.name:''}</td><td>${plan?plan.name:''}</td><td class=\"text-end\"><button class=\"btn btn-sm btn-outline-primary\" onclick=\"edit(${b.id})\">Edit</button> <button class=\"btn btn-sm btn-outline-danger\" onclick=\"del(${b.id})\">Delete</button></td>`; tbody.appendChild(tr); });
+      const catSel=document.getElementById('category'); catSel.innerHTML=cats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      const planSel=document.getElementById('plan'); planSel.innerHTML=plans.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    }
+    async function create(ev){ ev.preventDefault(); const name=document.getElementById('name').value.trim(); const category_id=parseInt(document.getElementById('category').value,10); const owner_id=null; const subscription_plan_id=parseInt(document.getElementById('plan').value,10); await api('/api/businesses',{method:'POST', body: JSON.stringify({ name, category_id, owner_id, subscription_plan_id })}); ev.target.reset(); load(); }
+    async function edit(id){ const name=prompt('Business name?'); if(name==null) return; await api('/api/businesses/'+id,{method:'PUT', body: JSON.stringify({ name })}); load(); }
+    async function del(id){ if(confirm('Delete?')) { await api('/api/businesses/'+id,{method:'DELETE'}); load(); } }
+    window.addEventListener('DOMContentLoaded',()=>{ document.getElementById('form').addEventListener('submit',create); load(); });
+  </script>
+</head>
+<body>
+  <h3>Businesses</h3>
+  <form id="form" class="row g-2 mb-3">
+    <div class="col-md-5"><input id="name" class="form-control" placeholder="Business name" required></div>
+    <div class="col-md-3"><select id="category" class="form-select" required></select></div>
+    <div class="col-md-3"><select id="plan" class="form-select" required></select></div>
+    <div class="col-md-1 d-grid"><button class="btn btn-primary">Add</button></div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-sm"><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Plan</th><th></th></tr></thead><tbody></tbody></table>
+  </div>
+</body>
+</html>
+

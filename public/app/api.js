@@ -47,3 +47,8 @@ export const updateMenuItem = (itemId, itemData) => apiFetch(`/api/menu/item/${i
 export const deleteMenuItem = (itemId) => apiFetch(`/api/menu/item/${itemId}`, {
   method: 'DELETE'
 });
+
+// Profile
+export const getProfile = () => apiFetch('/api/profile/me');
+export const updateProfile = (data) => apiFetch('/api/profile/me', { method: 'PUT', body: JSON.stringify(data) });
+export const changePassword = (oldPassword, newPassword) => apiFetch('/api/profile/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) });

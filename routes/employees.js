@@ -4,8 +4,9 @@ const db = require('../database.js');
 
 // Basic list of employees from users table (non-admin)
 router.get('/', async (req, res) => {
+  if (!['admin', 'superadmin'].includes(req.session.user?.role)) return res.status(403).json({ error: 'Forbidden' });
   try {
-    const [rows] = await db.execute("SELECT id, username, role FROM users WHERE role <> 'admin' ORDER BY username");
+    const [rows] = await db.execute("SELECT id, username, role FROM users WHERE role NOT IN ('admin','superadmin') ORDER BY username");
     res.json({ employees: rows });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch employees' });
@@ -32,12 +33,13 @@ router.post('/clock', async (req, res) => {
 
 // Simple performance: hours worked in last 7 days per user
 router.get('/performance', async (req, res) => {
+  if (!['admin', 'superadmin'].includes(req.session.user?.role)) return res.status(403).json({ error: 'Forbidden' });
   try {
     const [rows] = await db.execute(`
       SELECT u.id, u.username, SUM(TIMESTAMPDIFF(MINUTE, s.clock_in, COALESCE(s.clock_out, NOW())))/60 AS hours
       FROM users u
       LEFT JOIN employee_shifts s ON s.user_id = u.id AND s.clock_in >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-      WHERE u.role <> 'admin'
+      WHERE u.role NOT IN ('admin','superadmin')
       GROUP BY u.id, u.username
       ORDER BY hours DESC, u.username
     `);

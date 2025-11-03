@@ -19,6 +19,7 @@ function applyRoleBasedUI(role) {
     let visibleElements = [];
     switch (role) {
         case 'admin':
+        case 'superadmin':
             visibleElements = ['#admin-dashboard-section', ...adminOnlySidebar, ...adminOnlyHeader];
             break;
         case 'front':
@@ -38,12 +39,21 @@ function applyRoleBasedUI(role) {
     });
 
     // Special handling for sidebar items, which are list items
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'superadmin') {
         adminOnlySidebar.forEach(sel => {
             const el = document.querySelector(sel);
             if (el) el.style.display = 'list-item';
         });
     }
+
+    const superLinks = document.querySelectorAll("#sidebar-nav a[href^='/admin/']");
+    const superTitle = Array.from(document.querySelectorAll('#sidebar-nav .nav-title')).find(title => (title.textContent || '').toLowerCase().includes('super admin'));
+    const showSuper = role === 'superadmin';
+    superLinks.forEach(link => {
+        const li = link.closest('.nav-item');
+        if (li) li.style.display = showSuper ? '' : 'none';
+    });
+    if (superTitle) superTitle.style.display = showSuper ? '' : 'none';
 }
 
 export async function initializeApp() {
@@ -52,17 +62,18 @@ export async function initializeApp() {
         if (data.loggedIn) {
             setState({ currentUser: data.user, currentUserRole: data.user.role });
             ui.showDashboard();
-            applyRoleBasedUI(data.user.role);
+            const role = data.user.role;
+            applyRoleBasedUI(role);
             await fetchMenu();
             // Role-specific data fetching
-            if (data.user.role === 'admin') {
+            if (role === 'admin' || role === 'superadmin') {
                 fetchAdminDashboardData();
             }
-            if (data.user.role === 'admin' || data.user.role === 'front') {
+            if (role === 'admin' || role === 'superadmin' || role === 'front') {
                 fetchPendingOrdersForPayment();
                 setInterval(fetchPendingOrdersForPayment, 15000);
             }
-            if (data.user.role === 'admin' || data.user.role === 'kitchen') {
+            if (role === 'admin' || role === 'superadmin' || role === 'kitchen') {
                 fetchOrderQueue();
                 setInterval(fetchOrderQueue, 10000);
             }

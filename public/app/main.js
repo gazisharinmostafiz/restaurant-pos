@@ -17,6 +17,9 @@ window.handlers = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 1) {
+    document.body.classList.add('touch-mode');
+  }
   wire();
   // Normalize Pound placeholders before dynamic render
   const p1=document.getElementById('total-price'); if (p1) p1.textContent='£0.00';
@@ -59,6 +62,20 @@ function wire(){
   q('#category-tab-content')?.addEventListener('click', (e)=>{ const el=e.target.closest('.menu-item'); if (!el) return; addItemFromClick(el); });
   // Keyboard support: Enter/Space to add item
   q('#category-tab-content')?.addEventListener('keydown', (e)=>{ const el=e.target.closest('.menu-item'); if (!el) return; if (e.key==='Enter' || e.key===' '){ e.preventDefault(); addItemFromClick(el); }});
+  // Normalize currency in item cards and set a11y attributes when cards are rendered
+  const cat = q('#category-tab-content');
+  if (cat){
+    const fix = () => {
+      cat.querySelectorAll('.menu-item').forEach(card=>{
+        card.setAttribute('role','button'); card.tabIndex = 0;
+        const priceEl = card.querySelector('.item-price');
+        if (priceEl){ const txt = priceEl.textContent||''; if (!txt.trim().startsWith('£')) priceEl.textContent = '£'+txt.replace(/^[^\d.]*/,''); }
+      });
+    };
+    const mo = new MutationObserver((muts)=>{ for (const m of muts){ if (m.addedNodes && m.addedNodes.length){ fix(); break; } } });
+    mo.observe(cat, { childList:true, subtree:true });
+    setTimeout(fix, 300);
+  }
 
   // Current order
   q('#order-list')?.addEventListener('click', (e)=>{ const item=e.target.closest('.list-group-item'); if (!item) return; const idx=parseInt(item.dataset.index,10); if (e.target.classList.contains('remove-item-btn')){ const s=getState(); s.currentOrder.splice(idx,1); renderOrder(); } else if (e.target.classList.contains('quantity-btn')){ const s=getState(); const act=e.target.dataset.action; if (act==='increment') s.currentOrder[idx].quantity++; else if (s.currentOrder[idx].quantity>1) s.currentOrder[idx].quantity--; else s.currentOrder.splice(idx,1); renderOrder(); } });

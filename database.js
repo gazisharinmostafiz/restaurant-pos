@@ -7,12 +7,16 @@ const pool = mysql.createPool({
     host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'res_pos2',
-    port: process.env.DB_PORT || 3307, // Using 3307 due to XAMPP port conflict
+    database: process.env.DB_NAME || 'res_pos',
+    port: process.env.DB_PORT || 3306, // Using 3307 due to XAMPP port conflict
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
+
+const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USER || 'superadmin';
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
+const SUPERADMIN_FORCE_RESET = String(process.env.SUPERADMIN_FORCE_RESET || 'true').toLowerCase() === 'true';
 
 async function initializeDatabase() {
     try {
@@ -53,11 +57,24 @@ ${process.env.DB_NAME || 'res_pos'}`);
             )
         `);
 
+        // Ensure optional profile fields exist on users table
+        try {
+            await connection.query("ALTER TABLE users ADD COLUMN name VARCHAR(255) NULL");
+        } catch (e) {
+            if (e && e.code !== 'ER_DUP_FIELDNAME') throw e;
+        }
+        try {
+            await connection.query("ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL");
+        } catch (e) {
+            if (e && e.code !== 'ER_DUP_FIELDNAME') throw e;
+        }
+
         // Seed the users table if it's empty
         const [userRows] = await connection.query("SELECT COUNT(*) as count FROM users");
         if (userRows[0].count === 0) {
             console.log('Seeding users...');
             const users = [
+                { username: SUPERADMIN_USERNAME, password: SUPERADMIN_PASSWORD, role: 'superadmin' },
                 { username: 'admin', password: '1234', role: 'admin' },
                 { username: 'waiter', password: '1234', role: 'waiter' },
                 { username: 'kitchen', password: '1234', role: 'kitchen' },
@@ -67,6 +84,32 @@ ${process.env.DB_NAME || 'res_pos'}`);
                 const hashedPassword = await bcrypt.hash(user.password, 10);
                 await connection.query("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [user.username, hashedPassword, user.role]);
             }
+        }
+
+        // Ensure a superadmin user exists even if the table was already seeded previously
+        try {
+            const [superRows] = await connection.query("SELECT id, username, password FROM users WHERE role = 'superadmin' LIMIT 1");
+            if (!superRows.length) {
+                const hashed = await bcrypt.hash(SUPERADMIN_PASSWORD, 10);
+                await connection.query("INSERT INTO users (username, password, role) VALUES (?, ?, 'superadmin')", [SUPERADMIN_USERNAME, hashed]);
+                console.log(`Super admin '${SUPERADMIN_USERNAME}' created with default password.`);
+            } else {
+                const current = superRows[0];
+                const updates = [];
+                if (current.username !== SUPERADMIN_USERNAME) {
+                    updates.push(connection.query("UPDATE users SET username = ? WHERE id = ?", [SUPERADMIN_USERNAME, current.id]));
+                }
+                if (SUPERADMIN_FORCE_RESET) {
+                    const hashed = await bcrypt.hash(SUPERADMIN_PASSWORD, 10);
+                    updates.push(connection.query("UPDATE users SET password = ? WHERE id = ?", [hashed, current.id]));
+                }
+                if (updates.length) {
+                    await Promise.all(updates);
+                    console.log(`Super admin '${SUPERADMIN_USERNAME}' credentials refreshed from environment.`);
+                }
+            }
+        } catch (ensureErr) {
+            console.warn('Could not ensure super admin user:', ensureErr.message);
         }
 
         // Migrate any existing plaintext passwords to bcrypt hashes
@@ -339,6 +382,7 @@ async function updateUsers() {
         const connection = await pool.getConnection();
         console.log('Updating users...');
         const users = [
+            { username: SUPERADMIN_USERNAME, password: SUPERADMIN_PASSWORD, role: 'superadmin' },
             { username: 'admin', password: '1234', role: 'admin' },
             { username: 'waiter', password: '1234', role: 'waiter' },
             { username: 'kitchen', password: '1234', role: 'kitchen' },
@@ -357,7 +401,10 @@ async function updateUsers() {
 
 console.log('Initializing database...');
 initializeDatabase();
-// Ensure default user passwords are valid (dev convenience)
-updateUsers();
+
+// Ensure default user passwords are valid (dev convenience). Only run in development.
+if (process.env.NODE_ENV === 'development') {
+    updateUsers();
+}
 
 module.exports = pool;

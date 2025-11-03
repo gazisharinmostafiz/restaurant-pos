@@ -1,4 +1,4 @@
-import { getState, getCurrentOrder } from './state.js';
+﻿import { getState, getCurrentOrder } from './state.js';
 
 // --- DOM Element Cache ---
 const orderList = document.getElementById('order-list');
@@ -29,6 +29,23 @@ const viewOldOrdersBtn = document.getElementById('view-old-orders-btn');
 const payCashBtn = document.getElementById('pay-cash-btn');
 const payCardBtn = document.getElementById('pay-card-btn');
 const manageStockSidebarItem = document.getElementById('manage-stock-sidebar-item');
+let dashboardChart = null;
+
+function formatCurrency(value) {
+    return `£${Number(value || 0).toFixed(2)}`;
+}
+
+function safeText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
+
+function formatDateTime(value) {
+    if (!value) return '';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return value;
+    return `${dt.toLocaleDateString()} ${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
 
 // --- UI Rendering Functions ---
 
@@ -63,7 +80,7 @@ export function renderOrder() {
         li.innerHTML = `
             <div class="item-info">
                 <div>${item.name} x ${item.quantity}</div>
-                <div class="fw-bold">£${(item.price * item.quantity).toFixed(2)}</div>
+                <div class="fw-bold">Â£${(item.price * item.quantity).toFixed(2)}</div>
             </div>
             <div class="item-actions btn-group">
                 <button class="btn btn-sm btn-outline-secondary quantity-btn" data-action="decrement">-</button>
@@ -76,7 +93,7 @@ export function renderOrder() {
         }
     });
 
-    totalPriceDisplay.textContent = `£${total.toFixed(2)}`;
+    totalPriceDisplay.textContent = `Â£${total.toFixed(2)}`;
     placeOrderBtn.disabled = hasInsufficientStock;
     if (hasInsufficientStock) showToast('Some items have insufficient stock.', 'error');
 }
@@ -139,56 +156,20 @@ export function buildCategoryTabPanes(menu) {
 
 export function displayCategoryTabItems(category) {
     const { menu } = getState();
-    const tabPaneItems = document.querySelector(`#category-tab-content #tab-${slugify(category)} .menu-items`);
+    const slug = slugify(category);
+    const tabPaneItems = document.querySelector('#category-tab-content #tab-' + slug + ' .menu-items');
     if (!tabPaneItems) return;
     tabPaneItems.innerHTML = '';
     (menu[category] || []).forEach(item => {
+        const name = item?.name || '';
+        const stock = Number(item?.stock ?? 0);
+        const price = Number(item?.price ?? 0);
         const div = document.createElement('div');
         div.className = 'menu-item';
-        div.dataset.name = item.name;
-        div.innerHTML = `
-            <div class="item-name">${item.name}</div>
-            <div class="item-meta"><span class="stock-badge">Stock: ${item.stock}</span></div>
-            <div class="item-price">£${Number(item.price).toFixed(2)}</div>
-        `;
+        div.dataset.name = name;
+        div.innerHTML = '<div class="item-name">' + name + '</div>' +
+            '<div class="item-meta"><span class="stock-badge">Stock: ' + stock + '</span><span class="item-price">&pound;' + price.toFixed(2) + '</span></div>';
         tabPaneItems.appendChild(div);
-    });
-}
-
-export function activateCategoryPane(category) {
-    const tabContent = document.getElementById('category-tab-content');
-    if (!tabContent) return;
-    tabContent.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('show', 'active'));
-    const target = tabContent.querySelector(`#tab-${slugify(category)}`);
-    if (target) target.classList.add('show', 'active');
-}
-
-export function updateActiveTabStockBadges() {
-    const current = getCurrentOrder();
-    const countInOrder = (name) => current.filter(i => i.name === name).reduce((s, i) => s + i.quantity, 0);
-    const { menu } = getState();
-    const all = Object.values(menu || {}).flat();
-    document.querySelectorAll('#category-tab-content .tab-pane.show.active .menu-item').forEach(el => {
-        const name = el.dataset.name;
-        const stockBadge = el.querySelector('.stock-badge');
-        const item = all.find(i => i.name === name);
-        if (!name || !stockBadge || !item) return;
-        const left = Math.max(0, (item.stock || 0) - countInOrder(name));
-        stockBadge.textContent = `Stock: ${left}`;
-    });
-}
-
-export function displayMenuItems(category) {
-    const { menu } = getState();
-    console.log('Displaying menu for category:', category);
-    console.log('Menu data:', menu);
-    menuItemsContainer.innerHTML = '';
-    (menu[category] || []).forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'menu-item';
-        div.dataset.name = item.name;
-        div.innerHTML = `<div>${item.name} (${item.stock} left)</div><div>£${item.price.toFixed(2)}</div>`;
-        menuItemsContainer.appendChild(div);
     });
 }
 
@@ -263,7 +244,7 @@ export function renderPendingOrders(orders) {
         li.dataset.items = JSON.stringify(order.items);
         const balance = (typeof order.balance === 'number') ? Number(order.balance) : total;
         li.dataset.balance = String(balance);
-        li.innerHTML = `Order #${order.id} - ${order.destination} - <strong>Due £${balance.toFixed(2)}</strong>`;
+        li.innerHTML = `Order #${order.id} - ${order.destination} - <strong>Due Â£${balance.toFixed(2)}</strong>`;
         pendingOrdersList.appendChild(li);
     });
 }
@@ -277,7 +258,7 @@ export function renderOldOrders(orders) {
         const itemsHtml = order.items.map(item => 
             `<li class="list-group-item d-flex justify-content-between">
                 <span>${item.item_name} x ${item.quantity}</span>
-                <span>£${(item.price * item.quantity).toFixed(2)}</span>
+                <span>Â£${(item.price * item.quantity).toFixed(2)}</span>
             </li>`
         ).join('');
 
@@ -293,9 +274,9 @@ export function renderOldOrders(orders) {
                     ${itemsHtml}
                 </ul>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between"><span>Subtotal</span> <span>£${order.total.toFixed(2)}</span></li>
-                    <li class="list-group-item d-flex justify-content-between"><span>Discount</span> <span>- £${(order.discount || 0).toFixed(2)}</span></li>
-                    <li class="list-group-item d-flex justify-content-between fw-bold"><span>Final Total</span> <span>£${finalTotal.toFixed(2)}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>Subtotal</span> <span>Â£${order.total.toFixed(2)}</span></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>Discount</span> <span>- Â£${(order.discount || 0).toFixed(2)}</span></li>
+                    <li class="list-group-item d-flex justify-content-between fw-bold"><span>Final Total</span> <span>Â£${finalTotal.toFixed(2)}</span></li>
                 </ul>
             </div>
             <div class="card-footer text-muted">
@@ -309,9 +290,9 @@ export function renderOldOrders(orders) {
 
 export function renderZReport(report, salesChart) {
     zReportSummary.innerHTML = `
-        <p><strong>Total Sales:</strong> £${report.total_sales.toFixed(2)}</p>
-        <p><strong>Cash Sales:</strong> £${report.cash_sales.toFixed(2)}</p>
-        <p><strong>Card Sales:</strong> £${report.card_sales.toFixed(2)}</p>
+        <p><strong>Total Sales:</strong> Â£${report.total_sales.toFixed(2)}</p>
+        <p><strong>Cash Sales:</strong> Â£${report.cash_sales.toFixed(2)}</p>
+        <p><strong>Card Sales:</strong> Â£${report.card_sales.toFixed(2)}</p>
     `;
 
     const ctx = salesChartCanvas.getContext('2d');
@@ -348,19 +329,19 @@ export function renderProfitLossReport(report) {
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         Total Revenue
-                        <span class="badge bg-success rounded-pill fs-6">£${report.total_revenue.toFixed(2)}</span>
+                        <span class="badge bg-success rounded-pill fs-6">Â£${report.total_revenue.toFixed(2)}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         Total Cost of Goods Sold
-                        <span class="badge bg-warning rounded-pill fs-6">- £${report.total_cost.toFixed(2)}</span>
+                        <span class="badge bg-warning rounded-pill fs-6">- Â£${report.total_cost.toFixed(2)}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         Discounts Given
-                        <span class="badge bg-secondary rounded-pill fs-6">- £${report.total_discount.toFixed(2)}</span>
+                        <span class="badge bg-secondary rounded-pill fs-6">- Â£${report.total_discount.toFixed(2)}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center fw-bold fs-5">
                         Gross Profit
-                        <span class="badge bg-primary rounded-pill fs-5">£${grossProfit.toFixed(2)}</span>
+                        <span class="badge bg-primary rounded-pill fs-5">Â£${grossProfit.toFixed(2)}</span>
                     </li>
                 </ul>
             </div>
@@ -368,31 +349,152 @@ export function renderProfitLossReport(report) {
     `;
 }
 
-export function renderAdminDashboard(summary) {
-    document.getElementById('admin-summary-sales').innerHTML = `
-        <div class="fs-4 fw-semibold">£${summary.todays_sales.toFixed(2)}</div>
-        <div>Today's Sales</div>
-    `;
-    document.getElementById('admin-summary-orders').innerHTML = `
-        <div class="fs-4 fw-semibold">${summary.todays_orders}</div>
-        <div>Today's Orders</div>
-    `;
-    document.getElementById('admin-summary-users').innerHTML = `
-        <div class="fs-4 fw-semibold">${summary.total_users}</div>
-        <div>Total Users</div>
-    `;
-    document.getElementById('admin-summary-low-stock').innerHTML = `
-        <div class="fs-4 fw-semibold">${summary.low_stock_items}</div>
-        <div>Low Stock Items</div>
-    `;
-}
+export function renderAdminDashboard(data) {
+    if (!data || !data.summary) return;
 
+    const today = data.summary.today || {};
+    const month = data.summary.month || {};
+    const totals = data.summary.totals || {};
+    const users = data.summary.users || 0;
+    const lowStock = data.summary.lowStock || 0;
+
+    safeText('summary-today-sales', formatCurrency(today.sales));
+    safeText('summary-month-sales', MTD );
+    safeText('summary-today-purchases', formatCurrency(today.purchases));
+    safeText('summary-month-purchases', MTD );
+    safeText('summary-today-profit', formatCurrency(today.profit));
+    safeText('summary-month-profit', MTD );
+    safeText('summary-today-orders', Number(today.orders || 0).toString());
+    safeText('summary-users', Users:  · Low stock: );
+
+    safeText('cashflow-total-sales', formatCurrency(totals.sales));
+    safeText('cashflow-total-purchases', formatCurrency(totals.purchases));
+    safeText('cashflow-total-profit', formatCurrency(totals.profit));
+    safeText('cashflow-users', users.toString());
+    safeText('cashflow-low-stock', lowStock.toString());
+
+    const topList = document.getElementById('top-products-list');
+    if (topList) {
+        const products = data.topProducts || [];
+        if (!products.length) {
+            topList.innerHTML = '<li class="list-group-item text-muted">No sales recorded in the last 30 days.</li>';
+        } else {
+            topList.innerHTML = products.map(p => 
+                <li class="list-group-item">
+                    <div class="product-name"></div>
+                    <div class="product-meta"> sold · </div>
+                </li>
+            ).join('');
+        }
+    }
+
+    const recentList = document.getElementById('recent-orders-list');
+    if (recentList) {
+        const orders = data.recentOrders || [];
+        if (!orders.length) {
+            recentList.innerHTML = '<li class="list-group-item text-muted">No recent orders.</li>';
+        } else {
+            recentList.innerHTML = orders.map(o => 
+                <li class="list-group-item">
+                    <div class="order-info">
+                        <span class="order-title">Order # · </span>
+                        <span class="order-meta"> · </span>
+                    </div>
+                    <div class="order-amount"></div>
+                </li>
+            ).join('');
+        }
+    }
+
+    const chartCanvas = document.getElementById('monthly-sales-chart');
+    if (chartCanvas) {
+        const series = data.monthlySeries || { labels: [], sales: [], purchases: [], profit: [] };
+        const ctx = chartCanvas.getContext('2d');
+        if (dashboardChart) dashboardChart.destroy();
+        dashboardChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: series.labels,
+                datasets: [
+                    {
+                        label: 'Sales',
+                        data: series.sales,
+                        borderColor: '#1677ff',
+                        backgroundColor: 'rgba(22, 119, 255, 0.18)',
+                        tension: 0.35,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Purchases',
+                        data: series.purchases,
+                        borderColor: '#41c78b',
+                        backgroundColor: 'rgba(65, 199, 139, 0.18)',
+                        tension: 0.35,
+                        fill: true,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Profit',
+                        data: series.profit,
+                        borderColor: '#f29900',
+                        backgroundColor: 'rgba(242, 153, 0, 0.1)',
+                        tension: 0.35,
+                        fill: false,
+                        borderWidth: 2,
+                        borderDash: [6, 6]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ${ctx.dataset.label}: 
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: value => formatCurrency(value)
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
 export function renderStockModal(menu, searchTerm = '') {
     stockListAccordion.innerHTML = '';
     const lowercasedFilter = searchTerm.toLowerCase();
     // Ensure extended fields exist on the form (SKU, Barcode, Cost)
     const form = document.getElementById('menu-item-form');
-    if (form && !document.getElementById('menu-item-sku')){
+    const role = (getState().currentUserRole || '').toLowerCase();
+    const isAdmin = ['admin', 'superadmin'].includes(role);
+    if (form) {
+        const card = form.closest('.card');
+        if (card) card.style.display = '';
+        if (!isAdmin) {
+            const header = card?.querySelector('.card-header');
+            if (header) header.textContent = 'Menu Item Details (admin only)';
+            form.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(el => { el.disabled = true; });
+            const saveBtn = form.querySelector('button[type="submit"]');
+            if (saveBtn) saveBtn.style.display = 'none';
+            const clearBtn = form.querySelector('#clear-menu-item-form-btn');
+            if (clearBtn) clearBtn.style.display = 'none';
+        } else {
+            form.querySelectorAll('input, select, textarea').forEach(el => { el.disabled = false; });
+            const saveBtn = form.querySelector('button[type="submit"]');
+            if (saveBtn) saveBtn.style.display = '';
+            const clearBtn = form.querySelector('#clear-menu-item-form-btn');
+            if (clearBtn) clearBtn.style.display = '';
+        }
+    }
+    if (form && isAdmin && !document.getElementById('menu-item-sku')){
         const container = document.createElement('div');
         container.className = 'row';
         container.innerHTML = `
@@ -405,7 +507,7 @@ export function renderStockModal(menu, searchTerm = '') {
                 <input type="text" id="menu-item-barcode" class="form-control">
             </div>
             <div class="col-md-4 mb-3">
-                <label for="menu-item-cost" class="form-label">Cost (£)</label>
+                <label for="menu-item-cost" class="form-label">Cost (Â£)</label>
                 <input type="number" id="menu-item-cost" step="0.01" min="0" class="form-control" value="0">
             </div>`;
         form.appendChild(container);
@@ -426,11 +528,11 @@ export function renderStockModal(menu, searchTerm = '') {
                 <span class="stock-item-name">${item.name}</span>
                 <div class="stock-item-controls input-group">
                     <button class="btn btn-outline-secondary stock-adj-btn" data-action="decrease">-</button>
-                    <input type="number" class="form-control stock-quantity-input" value="${item.stock}" data-name="${item.name}" data-id="${item.id}" min="0">
+                    <input type="number" class="form-control stock-quantity-input" value="${Number(item.stock || 0)}" data-name="${item.name}" data-id="${item.id}" min="0">
                     <button class="btn btn-outline-secondary stock-adj-btn" data-action="increase">+</button>
                     <button class="btn btn-outline-primary set-stock-btn">Set</button>
-                    <button class="btn btn-outline-info edit-item-btn">Edit</button>
-                    <button class="btn btn-outline-danger delete-item-btn">Delete</button>
+                    ${role==='admin' ? '<button class="btn btn-outline-info edit-item-btn">Edit</button>' : ''}
+                    ${role==='admin' ? '<button class="btn btn-outline-danger delete-item-btn">Delete</button>' : ''}
                 </div>
             </div>
         `).join('');

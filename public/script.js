@@ -203,7 +203,9 @@ function updateViewForRole() {
     payCardBtn.style.display = 'none';
     manageStockSidebarItem.style.display = 'none';
 
-    if (currentUserRole === 'waiter' || currentUserRole === 'admin') {
+    const isAdminLike = currentUserRole === 'admin' || currentUserRole === 'superadmin';
+
+    if (currentUserRole === 'waiter' || isAdminLike) {
         orderDetailsSection.style.display = 'block';
         addOrderBtn.style.display = 'block';
         viewOldOrdersBtn.style.display = 'inline-block';
@@ -211,7 +213,7 @@ function updateViewForRole() {
         // document.querySelector('.menu-categories .nav-link[data-category="Snacks"]').classList.add('active');
     }
 
-    if (currentUserRole === 'admin') {
+    if (isAdminLike) {
         // Front desk can see pending orders and process payments
         pendingOrdersSection.style.display = 'block';
         payCashBtn.style.display = 'inline-block';
@@ -222,7 +224,7 @@ function updateViewForRole() {
         setInterval(fetchPendingOrdersForPayment, 15000);
     }
 
-    if (currentUserRole === 'kitchen') {
+    if (currentUserRole === 'kitchen' || isAdminLike) {
         // Kitchen only sees the order queue
         queueSection.style.display = 'block';
         fetchOrderQueue(); // Fetch queue on login
@@ -261,12 +263,17 @@ function populateMenuCategories() {
 function displayMenuItems(category) {
     menuItemsContainer.innerHTML = '';
     (menu[category] || []).forEach(item => {
+        const name = item?.name || '';
+        const stock = Number(item?.stock ?? 0);
+        const price = Number(item?.price ?? 0);
         const div = document.createElement('div');
         div.className = 'menu-item';
-        div.dataset.name = item.name;
-        div.dataset.price = item.price;
-        div.dataset.stock = item.stock;
-        div.innerHTML = `<div>${item.name} (${item.stock} left)</div><div>£${item.price.toFixed(2)}</div>`;
+        div.dataset.name = name;
+        div.dataset.price = price;
+        div.dataset.stock = stock;
+        div.innerHTML = `
+            <div class="item-name">${name}</div>
+            <div class="item-meta"><span class="stock-badge">Stock: ${stock}</span><span class="item-price">£${price.toFixed(2)}</span></div>`;
         menuItemsContainer.appendChild(div);
     });
 }

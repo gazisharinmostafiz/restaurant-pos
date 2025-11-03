@@ -39,12 +39,26 @@ const isAuthenticated = (req, res, next) => {
     }
 };
 
+// Simple role guard helper
+const allowRoles = (...roles) => (req, res, next) => {
+    const r = req.session.user?.role;
+    if (!r) return res.status(403).json({ error: 'Forbidden' });
+    if (r === 'superadmin' || roles.includes(r)) return next();
+    return res.status(403).json({ error: 'Forbidden' });
+};
+
 app.get('/api/users', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    const requesterRole = req.session.user.role;
+    if (!['admin', 'superadmin'].includes(requesterRole)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     try {
-        const [rows] = await db.execute("SELECT id, username, role FROM users");
+        let query = "SELECT id, username, role FROM users";
+        const params = [];
+        if (requesterRole === 'admin') {
+            query += " WHERE role <> 'superadmin'";
+        }
+        const [rows] = await db.execute(query, params);
         res.json({ users: rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -352,18 +366,21 @@ const systemRoutes = require('./routes/system');
 const helpRoutes = require('./routes/help');
 const menuMgmtRoutes = require('./routes/menuMgmt');
 const tableRoutes = require('./routes/tables');
+const profileRoutes = require('./routes/profile');
 
+// Inventory: restrict mutating endpoints inside routes file; general mount stays authenticated
 app.use('/api/inventory', isAuthenticated, inventoryRoutes);
-app.use('/api/customers', isAuthenticated, customerRoutes);
+app.use('/api/customers', isAuthenticated, allowRoles('admin','front','waiter'), customerRoutes);
 app.use('/api/employees', isAuthenticated, employeeRoutes);
-app.use('/api/reports', isAuthenticated, reportsRoutes);
+app.use('/api/reports', isAuthenticated, allowRoles('admin'), reportsRoutes);
 app.use('/api/receipts', isAuthenticated, receiptsRoutes);
-app.use('/api/settings', isAuthenticated, settingsRoutes);
-app.use('/api/accounting', isAuthenticated, accountingRoutes);
-app.use('/api/system', isAuthenticated, systemRoutes);
+app.use('/api/settings', isAuthenticated, allowRoles('admin'), settingsRoutes);
+app.use('/api/accounting', isAuthenticated, allowRoles('admin'), accountingRoutes);
+app.use('/api/system', isAuthenticated, allowRoles('admin'), systemRoutes);
 app.use('/api/help', isAuthenticated, helpRoutes);
-app.use('/api/menu-mgmt', isAuthenticated, menuMgmtRoutes);
+app.use('/api/menu-mgmt', isAuthenticated, allowRoles('admin'), menuMgmtRoutes);
 app.use('/api/tables', isAuthenticated, tableRoutes);
+app.use('/api/profile', isAuthenticated, profileRoutes);
 
 
 
@@ -447,7 +464,8 @@ app.get('/api/reports/profit-loss', isAuthenticated, async (req, res) => {
     }
 });
 
-app.post('/api/stock', isAuthenticated, async (req, res) => {
+// Stock updates: allow admin and kitchen only
+app.post('/api/stock', isAuthenticated, allowRoles('admin','kitchen'), async (req, res) => {
     const { updates } = req.body; // Expects an array of { id, stock } (name optional fallback)
     if (!Array.isArray(updates) || updates.length === 0) {
         return res.status(400).json({ error: 'Invalid stock update data.' });
@@ -515,8 +533,7 @@ app.get('/api/orders/completed', isAuthenticated, async (req, res) => {
 // --- ADMIN PANEL ROUTES ---
 
 app.post('/api/menu/item', isAuthenticated, async (req, res) => {
-    // Add role check for 'admin'
-    if (req.session.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) return res.status(403).json({ error: 'Forbidden' });
     const { name, price, category, stock, cost = 0, sku = null, barcode = null } = req.body;
     try {
         await db.execute("INSERT INTO menu (name, price, category, stock, cost, sku, barcode) VALUES (?, ?, ?, ?, ?, ?, ?)", [name, price, category, stock, cost, sku, barcode]);
@@ -527,7 +544,7 @@ app.post('/api/menu/item', isAuthenticated, async (req, res) => {
 });
 
 app.put('/api/menu/item/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
     const { name, price, category, cost = 0, sku = null, barcode = null } = req.body;
     try {
@@ -539,7 +556,7 @@ app.put('/api/menu/item/:id', isAuthenticated, async (req, res) => {
 });
 
 app.delete('/api/menu/item/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
     try {
         await db.execute("DELETE FROM menu WHERE id = ?", [id]);
@@ -550,7 +567,8 @@ app.delete('/api/menu/item/:id', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/users', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    const requesterRole = req.session.user.role;
+    if (!['admin', 'superadmin'].includes(requesterRole)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -560,8 +578,16 @@ app.post('/api/users', isAuthenticated, async (req, res) => {
         return res.status(400).json({ error: 'Username, password, and role are required.' });
     }
 
-    if (!['admin', 'waiter', 'kitchen', 'front'].includes(role)) {
+    const allowedRoles = ['admin', 'waiter', 'kitchen', 'front'];
+    if (requesterRole === 'superadmin') {
+        allowedRoles.push('superadmin');
+    }
+
+    if (!allowedRoles.includes(role)) {
         return res.status(400).json({ error: 'Invalid role specified.' });
+    }
+    if (role === 'superadmin' && requesterRole !== 'superadmin') {
+        return res.status(403).json({ error: 'Forbidden' });
     }
 
     try {
@@ -581,7 +607,8 @@ app.post('/api/users', isAuthenticated, async (req, res) => {
 });
 
 app.put('/api/users/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    const requesterRole = req.session.user.role;
+    if (!['admin', 'superadmin'].includes(requesterRole)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -592,11 +619,26 @@ app.put('/api/users/:id', isAuthenticated, async (req, res) => {
         return res.status(400).json({ error: 'Username and role are required.' });
     }
 
-    if (!['admin', 'waiter', 'kitchen', 'front'].includes(role)) {
+    const allowedRoles = ['admin', 'waiter', 'kitchen', 'front'];
+    if (requesterRole === 'superadmin') {
+        allowedRoles.push('superadmin');
+    }
+    if (!allowedRoles.includes(role)) {
         return res.status(400).json({ error: 'Invalid role specified.' });
+    }
+    if (role === 'superadmin' && requesterRole !== 'superadmin') {
+        return res.status(403).json({ error: 'Forbidden' });
     }
 
     try {
+        const [[existing]] = await db.execute("SELECT role FROM users WHERE id = ?", [id]);
+        if (!existing) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+        if (existing.role === 'superadmin' && requesterRole !== 'superadmin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);
             await db.execute(
@@ -620,13 +662,21 @@ app.put('/api/users/:id', isAuthenticated, async (req, res) => {
 });
 
 app.delete('/api/users/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    const requesterRole = req.session.user.role;
+    if (!['admin', 'superadmin'].includes(requesterRole)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
     const { id } = req.params;
 
     try {
+        const [[existing]] = await db.execute("SELECT role FROM users WHERE id = ?", [id]);
+        if (!existing) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+        if (existing.role === 'superadmin' && requesterRole !== 'superadmin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         await db.execute("DELETE FROM users WHERE id = ?", [id]);
         res.json({ success: true, message: 'User deleted successfully.' });
     } catch (err) {
@@ -636,30 +686,142 @@ app.delete('/api/users/:id', isAuthenticated, async (req, res) => {
 });
 
 app.get('/api/admin/dashboard-summary', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
 
     try {
-        const salesQuery = `
+        const [todayRows] = await db.execute(`
             SELECT 
-                SUM((SELECT SUM(oi.price * oi.quantity) FROM order_items oi WHERE oi.order_id = o.id) - o.discount) as total_sales,
-                COUNT(o.id) as total_orders
+                COALESCE(SUM(oi.price * oi.quantity),0) AS sales,
+                COALESCE(SUM(IFNULL(m.cost, 0) * oi.quantity),0) AS purchases,
+                COUNT(DISTINCT o.id) AS orders
             FROM orders o
-            WHERE o.status = 'completed' AND DATE(o.timestamp) = CURDATE();
-        `;
-        const usersQuery = `SELECT COUNT(id) as user_count FROM users;`;
-        const lowStockQuery = `SELECT COUNT(id) as low_stock_count FROM menu WHERE stock < 10;`;
+            JOIN order_items oi ON oi.order_id = o.id
+            LEFT JOIN menu m ON m.name = oi.item_name
+            WHERE DATE(o.timestamp) = CURDATE();
+        `);
 
-        const [[salesData]] = await db.execute(salesQuery);
-        const [[userData]] = await db.execute(usersQuery);
-        const [[lowStockData]] = await db.execute(lowStockQuery);
+        const [monthRows] = await db.execute(`
+            SELECT 
+                COALESCE(SUM(oi.price * oi.quantity),0) AS sales,
+                COALESCE(SUM(IFNULL(m.cost, 0) * oi.quantity),0) AS purchases
+            FROM orders o
+            JOIN order_items oi ON oi.order_id = o.id
+            LEFT JOIN menu m ON m.name = oi.item_name
+            WHERE o.timestamp >= DATE_FORMAT(CURDATE(), '%Y-%m-01');
+        `);
+
+        const [totalsRows] = await db.execute(`
+            SELECT 
+                COALESCE(SUM(oi.price * oi.quantity),0) AS sales,
+                COALESCE(SUM(IFNULL(m.cost, 0) * oi.quantity),0) AS purchases
+            FROM orders o
+            JOIN order_items oi ON oi.order_id = o.id
+            LEFT JOIN menu m ON m.name = oi.item_name;
+        `);
+
+        const [monthlyRows] = await db.execute(`
+            SELECT DATE_FORMAT(o.timestamp, '%Y-%m') AS period,
+                   COALESCE(SUM(oi.price * oi.quantity),0) AS sales,
+                   COALESCE(SUM(IFNULL(m.cost, 0) * oi.quantity),0) AS purchases
+            FROM orders o
+            JOIN order_items oi ON oi.order_id = o.id
+            LEFT JOIN menu m ON m.name = oi.item_name
+            WHERE o.timestamp >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 11 MONTH)
+            GROUP BY period
+            ORDER BY period;
+        `);
+
+        const [topProductRows] = await db.execute(`
+            SELECT oi.item_name AS name,
+                   SUM(oi.quantity) AS quantity,
+                   SUM(oi.price * oi.quantity) AS sales
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE o.timestamp >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY oi.item_name
+            ORDER BY quantity DESC
+            LIMIT 5;
+        `);
+
+        const [recentRows] = await db.execute(`
+            SELECT o.id,
+                   o.destination,
+                   o.status,
+                   o.timestamp,
+                   COALESCE(SUM(oi.price * oi.quantity),0) AS total
+            FROM orders o
+            LEFT JOIN order_items oi ON oi.order_id = o.id
+            GROUP BY o.id, o.destination, o.status, o.timestamp
+            ORDER BY o.timestamp DESC
+            LIMIT 5;
+        `);
+
+        const [[userData]] = await db.execute('SELECT COUNT(id) AS user_count FROM users');
+        const [[lowStockData]] = await db.execute('SELECT COUNT(id) AS low_stock_count FROM menu WHERE stock < 10');
+
+        const today = todayRows[0] || { sales: 0, purchases: 0, orders: 0 };
+        const month = monthRows[0] || { sales: 0, purchases: 0 };
+        const totals = totalsRows[0] || { sales: 0, purchases: 0 };
+
+        const monthMap = new Map();
+        monthlyRows.forEach(row => {
+            monthMap.set(row.period, {
+                sales: Number(row.sales || 0),
+                purchases: Number(row.purchases || 0)
+            });
+        });
+
+        const monthlySeries = { labels: [], sales: [], purchases: [], profit: [] };
+        const todayDate = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const ref = new Date(todayDate.getFullYear(), todayDate.getMonth() - i, 1);
+            const key = ref.toISOString().slice(0, 7);
+            const label = ref.toLocaleString('default', { month: 'short', year: 'numeric' });
+            const values = monthMap.get(key) || { sales: 0, purchases: 0 };
+            const sales = Number(values.sales || 0);
+            const purchases = Number(values.purchases || 0);
+            monthlySeries.labels.push(label);
+            monthlySeries.sales.push(sales);
+            monthlySeries.purchases.push(purchases);
+            monthlySeries.profit.push(Number((sales - purchases).toFixed(2)));
+        }
 
         res.json({
-            todays_sales: parseFloat(salesData.total_sales) || 0,
-            todays_orders: salesData.total_orders || 0,
-            total_users: userData.user_count || 0,
-            low_stock_items: lowStockData.low_stock_count || 0
+            summary: {
+                today: {
+                    sales: Number(today.sales || 0),
+                    purchases: Number(today.purchases || 0),
+                    profit: Number((Number(today.sales || 0) - Number(today.purchases || 0)).toFixed(2)),
+                    orders: Number(today.orders || 0)
+                },
+                month: {
+                    sales: Number(month.sales || 0),
+                    purchases: Number(month.purchases || 0),
+                    profit: Number((Number(month.sales || 0) - Number(month.purchases || 0)).toFixed(2))
+                },
+                totals: {
+                    sales: Number(totals.sales || 0),
+                    purchases: Number(totals.purchases || 0),
+                    profit: Number((Number(totals.sales || 0) - Number(totals.purchases || 0)).toFixed(2))
+                },
+                users: Number(userData.user_count || 0),
+                lowStock: Number(lowStockData.low_stock_count || 0)
+            },
+            monthlySeries,
+            topProducts: topProductRows.map(row => ({
+                name: row.name,
+                quantity: Number(row.quantity || 0),
+                sales: Number(row.sales || 0)
+            })),
+            recentOrders: recentRows.map(row => ({
+                id: row.id,
+                destination: row.destination,
+                status: row.status,
+                timestamp: row.timestamp,
+                total: Number(row.total || 0)
+            }))
         });
 
     } catch (err) {
@@ -672,7 +834,7 @@ app.get('/api/admin/dashboard-summary', isAuthenticated, async (req, res) => {
 // --- Business Category ROUTES ---
 
 app.get('/api/business-categories', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     try {
@@ -684,7 +846,7 @@ app.get('/api/business-categories', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/business-categories', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { name } = req.body;
@@ -697,7 +859,7 @@ app.post('/api/business-categories', isAuthenticated, async (req, res) => {
 });
 
 app.put('/api/business-categories/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;
@@ -711,7 +873,7 @@ app.put('/api/business-categories/:id', isAuthenticated, async (req, res) => {
 });
 
 app.delete('/api/business-categories/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;
@@ -726,7 +888,7 @@ app.delete('/api/business-categories/:id', isAuthenticated, async (req, res) => 
 // --- Subscription Plan ROUTES ---
 
 app.get('/api/subscription-plans', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     try {
@@ -738,7 +900,7 @@ app.get('/api/subscription-plans', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/subscription-plans', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { name, price, features } = req.body;
@@ -751,7 +913,7 @@ app.post('/api/subscription-plans', isAuthenticated, async (req, res) => {
 });
 
 app.put('/api/subscription-plans/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;
@@ -765,7 +927,7 @@ app.put('/api/subscription-plans/:id', isAuthenticated, async (req, res) => {
 });
 
 app.delete('/api/subscription-plans/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;
@@ -780,7 +942,7 @@ app.delete('/api/subscription-plans/:id', isAuthenticated, async (req, res) => {
 // --- Business ROUTES ---
 
 app.get('/api/businesses', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     try {
@@ -792,7 +954,7 @@ app.get('/api/businesses', isAuthenticated, async (req, res) => {
 });
 
 app.get('/api/businesses/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;
@@ -805,7 +967,7 @@ app.get('/api/businesses/:id', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/businesses', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { name, category_id, owner_id, subscription_plan_id } = req.body;
@@ -818,7 +980,7 @@ app.post('/api/businesses', isAuthenticated, async (req, res) => {
 });
 
 app.put('/api/businesses/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;
@@ -832,7 +994,7 @@ app.put('/api/businesses/:id', isAuthenticated, async (req, res) => {
 });
 
 app.delete('/api/businesses/:id', isAuthenticated, async (req, res) => {
-    if (req.session.user.role !== 'admin') {
+    if (!['admin', 'superadmin'].includes(req.session.user.role)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     const { id } = req.params;

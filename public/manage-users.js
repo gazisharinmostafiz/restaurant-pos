@@ -1,12 +1,17 @@
 import * as api from './api.js';
 import * as ui from './ui.js';
+import { getState } from './state.js';
 
 let users = [];
 
 async function loadUsers() {
     try {
         const data = await api.getUsers();
-        users = data.users;
+        const role = (getState().currentUserRole || '').toLowerCase();
+        users = data.users || [];
+        if (role === 'admin') {
+            users = users.filter(u => u.role !== 'superadmin');
+        }
         renderUsers();
     } catch (error) {
         ui.showToast('Failed to load users.', 'error');
@@ -90,6 +95,12 @@ export function initializeUserManagement() {
     const usersList = document.getElementById('users-list');
     const clearFormBtn = document.getElementById('clear-user-form-btn');
     const manageUsersSidebarItem = document.getElementById('manage-users-sidebar-item');
+    const currentRole = (getState().currentUserRole || '').toLowerCase();
+    const superOption = document.querySelector('#user-role option[value="superadmin"]');
+    if (superOption) {
+        superOption.style.display = currentRole === 'superadmin' ? '' : 'none';
+        superOption.disabled = currentRole === 'superadmin' ? false : true;
+    }
 
     if (manageUsersSidebarItem) {
         manageUsersSidebarItem.addEventListener('click', () => {

@@ -168,17 +168,29 @@ export function renderCustomers() {
 export function renderEmployees() {
   const root = el('employees-root');
   if (!root) return;
+  const role = (window?.appState?.currentUserRole || (window.getState? window.getState().currentUserRole: '')) || '';
+  const lower = String(role).toLowerCase();
+  const isAdmin = ['admin','superadmin'].includes(lower);
   root.innerHTML = `<div class="row g-3">
     <div class="col-md-4">
-      <div class="card h-100"><div class="card-header">My Shift</div><div class="card-body">
+      <div class="card mb-3"><div class="card-header">My Shift</div><div class="card-body">
         <div class="d-grid gap-2">
           <button id="emp-clock-in" class="btn btn-success">Clock In</button>
           <button id="emp-clock-out" class="btn btn-warning">Clock Out</button>
           <div id="emp-msg" class="text-muted">Ready.</div>
         </div>
       </div></div>
+      <div class="card"><div class="card-header">My Profile</div><div class="card-body">
+        <div class="mb-2"><label class="form-label">Name</label><input id="prof-name" class="form-control" type="text"/></div>
+        <div class="mb-3"><label class="form-label">Email</label><input id="prof-email" class="form-control" type="email"/></div>
+        <div class="d-grid gap-2 mb-3"><button id="prof-save" class="btn btn-primary">Update Profile</button></div>
+        <hr/>
+        <div class="mb-2"><label class="form-label">Current Password</label><input id="pwd-old" class="form-control" type="password"/></div>
+        <div class="mb-3"><label class="form-label">New Password</label><input id="pwd-new" class="form-control" type="password"/></div>
+        <div class="d-grid gap-2"><button id="pwd-save" class="btn btn-outline-primary">Change Password</button></div>
+      </div></div>
     </div>
-    <div class="col-md-8">
+    <div class="col-md-8" ${isAdmin? '': 'style="display:none"'}>
       <div class="card h-100"><div class="card-header">Performance (7 days)</div><div class="card-body">
         <div class="table-responsive"><table class="table table-sm" id="emp-perf"><thead><tr><th>User</th><th>Hours</th></tr></thead><tbody></tbody></table></div>
       </div></div>
@@ -188,7 +200,29 @@ export function renderEmployees() {
   const loadPerf = async()=>{ try{ const r=await fetch('/api/employees/performance'); const d=await r.json(); const tb=root.querySelector('#emp-perf tbody'); tb.innerHTML=''; (d.performance||[]).forEach(p=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${p.username}</td><td>${(Number(p.hours)||0).toFixed(2)}</td>`; tb.appendChild(tr); }); }catch{}};
   el('emp-clock-in').onclick = async ()=>{ try{ const r=await fetch('/api/employees/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'in'})}); if(r.ok){ msg.textContent='Clocked in.'; loadPerf(); } }catch{ msg.textContent='Error.'; } };
   el('emp-clock-out').onclick = async ()=>{ try{ const r=await fetch('/api/employees/clock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'out'})}); if(r.ok){ msg.textContent='Clocked out.'; loadPerf(); } }catch{ msg.textContent='Error.'; } };
-  loadPerf();
+  if (isAdmin) loadPerf();
+
+  // Load and wire profile actions
+  const nameInput = el('prof-name');
+  const emailInput = el('prof-email');
+  const saveBtn = el('prof-save');
+  const pwdOld = el('pwd-old');
+  const pwdNew = el('pwd-new');
+  const pwdSave = el('pwd-save');
+  // Prefill profile
+  fetch('/api/profile/me').then(r=>r.json()).then(d=>{ if (d && d.user){ if (nameInput) nameInput.value = d.user.name || ''; if (emailInput) emailInput.value = d.user.email || ''; }}).catch(()=>{});
+  if (saveBtn) saveBtn.onclick = async ()=>{
+    try {
+      const r = await fetch('/api/profile/me', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: nameInput.value||null, email: emailInput.value||null }) });
+      if (r.ok) msg.textContent = 'Profile updated.'; else msg.textContent = 'Profile update failed.';
+    } catch { msg.textContent = 'Profile update failed.'; }
+  };
+  if (pwdSave) pwdSave.onclick = async ()=>{
+    try {
+      const r = await fetch('/api/profile/password', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ oldPassword: pwdOld.value, newPassword: pwdNew.value }) });
+      if (r.ok) { msg.textContent = 'Password changed.'; pwdOld.value=''; pwdNew.value=''; } else { const d=await r.json().catch(()=>({})); msg.textContent = d.error||'Password change failed.'; }
+    } catch { msg.textContent = 'Password change failed.'; }
+  };
 }
 
 export function renderReports() {

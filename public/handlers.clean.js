@@ -14,13 +14,22 @@ function roleBoot(role) {
   });
   let vis = [];
   switch (role) {
-    case 'admin': vis = ['#admin-dashboard-section', ...adminOnlySidebar, ...adminOnlyHeader]; break;
+    case 'admin':
+    case 'superadmin':
+      vis = ['#admin-dashboard-section', ...adminOnlySidebar, ...adminOnlyHeader];
+      break;
     case 'front': vis = ['#menu-section', '#pending-orders-section', '#order-section', '#add-order-btn', '#view-old-orders-btn']; break;
     case 'waiter': vis = ['#menu-section', '#order-section', '#add-order-btn']; break;
     case 'kitchen': vis = ['#queue-section']; break;
   }
   vis.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = ''; });
-  if (role === 'admin') adminOnlySidebar.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = 'list-item'; });
+  if (role === 'admin' || role === 'superadmin') adminOnlySidebar.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = 'list-item'; });
+
+  const superLinks = document.querySelectorAll("#sidebar-nav a[href^='/admin/']");
+  const superTitle = Array.from(document.querySelectorAll('#sidebar-nav .nav-title')).find(title => (title.textContent || '').toLowerCase().includes('super admin'));
+  const showSuper = role === 'superadmin';
+  superLinks.forEach(link => { const li = link.closest('.nav-item'); if (li) li.style.display = showSuper ? '' : 'none'; });
+  if (superTitle) superTitle.style.display = showSuper ? '' : 'none';
 }
 
 export async function initializeApp() {
@@ -29,11 +38,12 @@ export async function initializeApp() {
     if (data.loggedIn) {
       setState({ currentUser: data.user, currentUserRole: data.user.role });
       ui.showDashboard();
-      roleBoot(data.user.role);
+      const role = data.user.role;
+      roleBoot(role);
       await fetchMenu();
-      if (data.user.role === 'admin') fetchAdminDashboardData();
-      if (data.user.role === 'admin' || data.user.role === 'front') { fetchPendingOrdersForPayment(); setInterval(fetchPendingOrdersForPayment, 15000); }
-      if (data.user.role === 'admin' || data.user.role === 'kitchen') { fetchOrderQueue(); setInterval(fetchOrderQueue, 10000); }
+      if (role === 'admin' || role === 'superadmin') fetchAdminDashboardData();
+      if (role === 'admin' || role === 'superadmin' || role === 'front') { fetchPendingOrdersForPayment(); setInterval(fetchPendingOrdersForPayment, 15000); }
+      if (role === 'admin' || role === 'superadmin' || role === 'kitchen') { fetchOrderQueue(); setInterval(fetchOrderQueue, 10000); }
     } else {
       ui.showLoginScreen();
     }

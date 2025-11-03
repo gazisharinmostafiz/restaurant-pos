@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>Tong POS - Restaurant System</title>
     <!-- CoreUI CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@coreui/coreui@4.2.2/dist/css/coreui.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,31 +29,31 @@
         <!-- Sidebar -->
         <div class="sidebar sidebar-dark sidebar-fixed sidebar-modern" id="sidebar">
             <div class="sidebar-brand d-none d-md-flex">
-                <span class="brand-icon">🍽️</span>
+                <span class="brand-icon"><i class="fa-solid fa-bowl-food"></i></span>
                 <span class="brand-text">Tong POS</span>
             </div>
             <ul id="sidebar-nav" class="sidebar-nav" data-coreui="navigation" data-simplebar="">
                 <li class="nav-title">Main</li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/sales"><span class="nav-icon">🧾</span> Sales / Register</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/orders"><span class="nav-icon">📦</span> Orders</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/inventory"><span class="nav-icon">📇</span> Inventory</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/customers"><span class="nav-icon">👤</span> Customers</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/employees"><span class="nav-icon">👥</span> Employees</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/reports"><span class="nav-icon">📊</span> Reports</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/settings"><span class="nav-icon">⚙️</span> Settings</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/accounting"><span class="nav-icon">💵</span> Accounting</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/system"><span class="nav-icon">🖥️</span> System</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/help"><span class="nav-icon">❓</span> Help</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/sales"><span class="nav-icon me-2"><i class="fa-solid fa-cash-register"></i></span> Sales / Register</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/orders"><span class="nav-icon me-2"><i class="fa-solid fa-list-ul"></i></span> Orders</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/inventory"><span class="nav-icon me-2"><i class="fa-solid fa-boxes-stacked"></i></span> Inventory</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/customers"><span class="nav-icon me-2"><i class="fa-solid fa-user-group"></i></span> Customers</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/employees"><span class="nav-icon me-2"><i class="fa-solid fa-user-tie"></i></span> Employees</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/reports"><span class="nav-icon me-2"><i class="fa-solid fa-chart-line"></i></span> Reports</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/settings"><span class="nav-icon me-2"><i class="fa-solid fa-gear"></i></span> Settings</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/accounting"><span class="nav-icon me-2"><i class="fa-solid fa-coins"></i></span> Accounting</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/system"><span class="nav-icon me-2"><i class="fa-solid fa-server"></i></span> System</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/help"><span class="nav-icon me-2"><i class="fa-solid fa-circle-question"></i></span> Help</a></li>
                 <li class="nav-title">Admin</li>
-                <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon">📦</span> Manage Stock</a></li>
-                <li id="manage-users-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon">🔐</span> Manage Users</a></li>
+                <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon me-2"><i class="fa-solid fa-warehouse"></i></span> Manage Stock</a></li>
+                <li id="manage-users-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon me-2"><i class="fa-solid fa-users-gear"></i></span> Manage Users</a></li>
                 <li class="nav-title">Super Admin</li>
-                <li class="nav-item"><a class="nav-link" href="/admin/businesses.html"><span class="nav-icon">🏢</span> Business List</a></li>
-                <li class="nav-item"><a class="nav-link" href="/admin/business-categories.html"><span class="nav-icon">🗂️</span> Business Category</a></li>
-                <li class="nav-item"><a class="nav-link" href="/admin/subscription-plans.html"><span class="nav-icon">💼</span> Subscription Plans</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/businesses.html"><span class="nav-icon me-2"><i class="fa-solid fa-building"></i></span> Business List</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/business-categories.html"><span class="nav-icon me-2"><i class="fa-solid fa-tags"></i></span> Business Category</a></li>
+                <li class="nav-item"><a class="nav-link" href="/admin/subscription-plans.html"><span class="nav-icon me-2"><i class="fa-solid fa-layer-group"></i></span> Subscription Plans</a></li>
             </ul>
             <div class="sidebar-footer d-none d-md-block">
-                <div class="small text-muted">v1.0 • Online</div>
+                <div class="small text-muted">v1.0 â€¢ Online</div>
             </div>
         </div>
 
@@ -96,25 +97,86 @@
 
                 <!-- Admin Dashboard Section -->
                 <div id="admin-dashboard-section" class="container-lg" style="display: none;">
-                    <div class="row">
+                    <div class="row g-3 mb-3">
                         <div class="col-sm-6 col-lg-3">
-                            <div class="card mb-4 text-white bg-primary">
-                                <div id="admin-summary-sales" class="card-body"></div>
+                            <div class="card summary-card sales-card">
+                                <div class="card-body">
+                                    <div class="summary-label">Today's Sales</div>
+                                    <div id="summary-today-sales" class="summary-value">£0.00</div>
+                                    <div id="summary-month-sales" class="summary-sub">MTD £0.00</div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-3">
-                            <div class="card mb-4 text-white bg-info">
-                                <div id="admin-summary-orders" class="card-body"></div>
+                            <div class="card summary-card purchases-card">
+                                <div class="card-body">
+                                    <div class="summary-label">Today's Purchases</div>
+                                    <div id="summary-today-purchases" class="summary-value">£0.00</div>
+                                    <div id="summary-month-purchases" class="summary-sub">MTD £0.00</div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-3">
-                            <div class="card mb-4 text-white bg-warning">
-                                <div id="admin-summary-users" class="card-body"></div>
+                            <div class="card summary-card profit-card">
+                                <div class="card-body">
+                                    <div class="summary-label">Today's Profit</div>
+                                    <div id="summary-today-profit" class="summary-value">£0.00</div>
+                                    <div id="summary-month-profit" class="summary-sub">MTD £0.00</div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-3">
-                            <div class="card mb-4 text-white bg-danger">
-                                <div id="admin-summary-low-stock" class="card-body"></div>
+                            <div class="card summary-card orders-card">
+                                <div class="card-body">
+                                    <div class="summary-label">Orders Today</div>
+                                    <div id="summary-today-orders" class="summary-value">0</div>
+                                    <div id="summary-users" class="summary-sub">Users: 0 · Low stock: 0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-lg-8">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span>Monthly Sales vs Purchases</span>
+                                    <small class="text-muted">Last 12 months</small>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="monthly-sales-chart" height="240"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-header">Top Selling Products (30 days)</div>
+                                <div class="card-body">
+                                    <ul id="top-products-list" class="list-group list-group-flush small"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header">Cash Flow Overview</div>
+                                <div class="card-body">
+                                    <div class="cashflow-grid">
+                                        <div class="cashflow-item"><span>Total Sales</span><strong id="cashflow-total-sales">£0.00</strong></div>
+                                        <div class="cashflow-item"><span>Total Purchases</span><strong id="cashflow-total-purchases">£0.00</strong></div>
+                                        <div class="cashflow-item"><span>Total Profit</span><strong id="cashflow-total-profit">£0.00</strong></div>
+                                        <div class="cashflow-item"><span>Active Users</span><strong id="cashflow-users">0</strong></div>
+                                        <div class="cashflow-item"><span>Low Stock Items</span><strong id="cashflow-low-stock">0</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header">Recent Orders</div>
+                                <div class="card-body">
+                                    <ul id="recent-orders-list" class="list-group list-group-flush small"></ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -181,7 +243,7 @@
                                     <ul id="order-list" class="list-group list-group-flush mb-3"></ul>
                                     <div class="order-total d-flex justify-content-between fs-5 fw-bold border-top pt-2">
                                         <span>Total:</span>
-                                        <span id="total-price">£0.00</span>
+                                        <span id="total-price">Â£0.00</span>
                                     </div>
                                     <div class="order-actions d-grid gap-2 mt-3">
                                         <button id="place-order-btn" class="btn btn-primary">Send to Kitchen</button>
@@ -329,22 +391,22 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3 fs-4 text-center">
-                    <strong>Total Due:</strong> <span id="payment-total-due" class="text-success">�0.00</span>
+                    <strong>Total Due:</strong> <span id="payment-total-due" class="text-success">£0.00</span>
                 </div>
                 <div class="input-group mb-3">
                     <span class="input-group-text">Discount (%)</span>
                     <input type="number" id="discount-percent" placeholder="0" class="form-control" placeholder="0.00" step="0.01" min="0">
                 </div>
                 <div class="input-group mb-3">
-                    <span class="input-group-text">Discount (�)</span>
+                    <span class="input-group-text">Discount (£)</span>
                     <input type="number" id="discount-cash" class="form-control" placeholder="0.00" step="0.01" min="0">
                 </div>
                 <div class="input-group mb-3">
-                    <span class="input-group-text">Tendered (�)</span>
+                    <span class="input-group-text">Tendered (£)</span>
                     <input type="number" id="amount-tendered" class="form-control" placeholder="0.00" step="0.01" min="0">
                 </div>
                  <div class="mb-3 fs-5 text-center">
-                    <strong>Change Due:</strong> <span id="payment-change-due">�0.00</span>
+                    <strong>Change Due:</strong> <span id="payment-change-due">£0.00</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -380,7 +442,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="menu-item-price" class="form-label">Price (£)</label>
+                                    <label for="menu-item-price" class="form-label">Price (Â£)</label>
                                     <input type="number" id="menu-item-price" class="form-control" step="0.01" min="0" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -453,7 +515,8 @@
                                     <option value="admin">Admin</option>
                                     <option value="kitchen">Kitchen</option>
                                     <option value="front">Front</option>
-                                    <option value="waiter">Waiter</option>
+                                    <option value=\"waiter\">Waiter</option>
+                                    <option value=\"superadmin\">Super Admin</option>
                                 </select>
                             </div>
                             <button type="submit" class="btn btn-primary">Save User</button>

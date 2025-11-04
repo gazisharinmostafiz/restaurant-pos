@@ -37,15 +37,15 @@ function setSuperAdminNavVisible(visible){
 export function applyRoleUI(role){
   hideAllSections();
   // Sidebar visibility control for app sections
-  const toggleNav = (hash, visible) => {
+  const toggleNav = (path, visible) => {
     const apply = (rootSelector, selector) => {
       qa(`${rootSelector} ${selector}`).forEach(link => {
         const li = link.closest('.nav-item');
         if (li) li.style.display = visible ? '' : 'none';
       });
     };
-    apply('#sidebar-nav', `a.pos-nav-link[href='${hash}']`);
-    apply('#pos-tabs', `a.nav-link[href='${hash}']`);
+    apply('#sidebar-nav', `a.pos-nav-link[href='${path}']`);
+    apply('#pos-tabs', `a.nav-link[href='${path}']`);
   };
   switch (role) {
     case 'admin':
@@ -56,7 +56,7 @@ export function applyRoleUI(role){
       show('#manage-users-sidebar-item');
       // super admin links remain visible
       // Admin sees all nav entries
-      ['#/sales','#/orders','#/inventory','#/customers','#/employees','#/reports','#/settings','#/accounting','#/system','#/help','#/menu','#/tables','#/kitchen']
+      ['/sales','/orders','/inventory','/products/categories','/products/list','/products/add','/products/barcodes','/products/adjustments','/products/adjustments/add','/products/stock-count','/expenses','/expenses/categories','/expenses/list','/expenses/add','/customers','/employees','/reports','/settings','/settings/printers','/settings/invoice','/settings/roles','/settings/discounts','/settings/discounts/add','/accounting','/system','/help','/menu','/tables','/kitchen']
         .forEach(h => toggleNav(h, true));
       setSuperAdminNavVisible(false);
       break;
@@ -66,7 +66,7 @@ export function applyRoleUI(role){
       show('#profit-loss-btn');
       show('#manage-stock-sidebar-item');
       show('#manage-users-sidebar-item');
-      ['#/sales','#/orders','#/inventory','#/customers','#/employees','#/reports','#/settings','#/accounting','#/system','#/help','#/menu','#/tables','#/kitchen']
+      ['/sales','/orders','/inventory','/products/categories','/products/list','/products/add','/products/barcodes','/products/adjustments','/products/adjustments/add','/products/stock-count','/expenses','/expenses/categories','/expenses/list','/expenses/add','/customers','/employees','/reports','/settings','/settings/printers','/settings/invoice','/settings/roles','/settings/discounts','/settings/discounts/add','/accounting','/system','/help','/menu','/tables','/kitchen']
         .forEach(h => toggleNav(h, true));
       setSuperAdminNavVisible(true);
       break;
@@ -79,8 +79,8 @@ export function applyRoleUI(role){
       hideAdminNav();
       setSuperAdminNavVisible(false);
       // Front: sales, orders, customers, help
-      ['#/sales','#/orders','#/customers','#/help'].forEach(h => toggleNav(h, true));
-      ['#/inventory','#/employees','#/reports','#/settings','#/accounting','#/system','#/menu','#/tables','#/kitchen'].forEach(h => toggleNav(h, false));
+      ['/sales','/orders','/customers','/help'].forEach(h => toggleNav(h, true));
+      ['/inventory','/products/categories','/products/list','/products/add','/products/barcodes','/products/adjustments','/products/adjustments/add','/products/stock-count','/expenses','/expenses/categories','/expenses/list','/expenses/add','/employees','/reports','/settings','/settings/printers','/settings/invoice','/settings/roles','/settings/discounts','/settings/discounts/add','/accounting','/system','/menu','/tables','/kitchen'].forEach(h => toggleNav(h, false));
       break;
     case 'waiter':
       show('#menu-section');
@@ -89,20 +89,20 @@ export function applyRoleUI(role){
       hideAdminNav();
       setSuperAdminNavVisible(false);
       // Waiter: sales, orders, tables, help
-      ['#/sales','#/orders','#/tables','#/help'].forEach(h => toggleNav(h, true));
-      ['#/inventory','#/customers','#/employees','#/reports','#/settings','#/accounting','#/system','#/menu','#/kitchen'].forEach(h => toggleNav(h, false));
+      ['/sales','/orders','/tables','/help'].forEach(h => toggleNav(h, true));
+      ['/inventory','/products/categories','/products/list','/products/add','/products/barcodes','/products/adjustments','/products/adjustments/add','/products/stock-count','/expenses','/expenses/categories','/expenses/list','/expenses/add','/customers','/employees','/reports','/settings','/settings/printers','/settings/invoice','/settings/roles','/settings/discounts','/settings/discounts/add','/accounting','/system','/menu','/kitchen'].forEach(h => toggleNav(h, false));
       break;
     case 'kitchen':
       // Kitchen display + limited modules
       hideAdminNav();
       setSuperAdminNavVisible(false);
       // Allowed: Orders, Inventory, Tables, Kitchen, Help, Employees (for clock)
-      ['#/orders','#/inventory','#/tables','#/kitchen','#/help','#/employees'].forEach(h => toggleNav(h, true));
+      ['/orders','/inventory','/tables','/kitchen','/help','/employees'].forEach(h => toggleNav(h, true));
       // Hide everything else
-      ['#/sales','#/customers','#/reports','#/settings','#/accounting','#/system','#/menu'].forEach(h => toggleNav(h, false));
+      ['/sales','/products/categories','/products/list','/products/add','/products/barcodes','/products/adjustments','/products/adjustments/add','/products/stock-count','/expenses','/expenses/categories','/expenses/list','/expenses/add','/customers','/reports','/settings','/settings/printers','/settings/invoice','/settings/roles','/settings/discounts','/settings/discounts/add','/accounting','/system','/menu'].forEach(h => toggleNav(h, false));
       // Default to Kitchen view if on a hidden section
-      if (!['#/orders','#/inventory','#/tables','#/kitchen','#/help','#/employees'].includes(window.location.hash)) {
-        window.location.hash = '#/kitchen';
+      if (!['/orders','/inventory','/tables','/kitchen','/help','/employees'].includes(window.location.pathname)) {
+        (window.clientNavigate||((p)=>{ window.history.pushState({},'',p); }))('/kitchen');
       }
       break;
     default:

@@ -34,16 +34,34 @@
             </div>
             <ul id="sidebar-nav" class="sidebar-nav" data-coreui="navigation" data-simplebar="">
                 <li class="nav-title">Main</li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/sales"><span class="nav-icon me-2"><i class="fa-solid fa-cash-register"></i></span> Sales / Register</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/orders"><span class="nav-icon me-2"><i class="fa-solid fa-list-ul"></i></span> Orders</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/inventory"><span class="nav-icon me-2"><i class="fa-solid fa-boxes-stacked"></i></span> Inventory</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/customers"><span class="nav-icon me-2"><i class="fa-solid fa-user-group"></i></span> Customers</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/employees"><span class="nav-icon me-2"><i class="fa-solid fa-user-tie"></i></span> Employees</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/reports"><span class="nav-icon me-2"><i class="fa-solid fa-chart-line"></i></span> Reports</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/settings"><span class="nav-icon me-2"><i class="fa-solid fa-gear"></i></span> Settings</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/accounting"><span class="nav-icon me-2"><i class="fa-solid fa-coins"></i></span> Accounting</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/system"><span class="nav-icon me-2"><i class="fa-solid fa-server"></i></span> System</a></li>
-                <li class="nav-item"><a class="nav-link pos-nav-link" href="#/help"><span class="nav-icon me-2"><i class="fa-solid fa-circle-question"></i></span> Help</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/sales"><span class="nav-icon me-2"><i class="fa-solid fa-cash-register"></i></span> Sales / Register</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/orders"><span class="nav-icon me-2"><i class="fa-solid fa-list-ul"></i></span> Orders</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/inventory"><span class="nav-icon me-2"><i class="fa-solid fa-boxes-stacked"></i></span> Inventory</a></li>
+                <!-- Product related links -->
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/categories"><span class="nav-icon me-2"><i class="fa-solid fa-layer-group"></i></span> Product Category</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/list"><span class="nav-icon me-2"><i class="fa-solid fa-list"></i></span> Product List</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/add"><span class="nav-icon me-2"><i class="fa-solid fa-circle-plus"></i></span> Add Product</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/barcodes"><span class="nav-icon me-2"><i class="fa-solid fa-barcode"></i></span> Print Barcode</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/adjustments"><span class="nav-icon me-2"><i class="fa-solid fa-rotate"></i></span> Adjustment List</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/adjustments/add"><span class="nav-icon me-2"><i class="fa-solid fa-wrench"></i></span> Add Adjustment</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/products/stock-count"><span class="nav-icon me-2"><i class="fa-solid fa-scale-balanced"></i></span> Stock Count</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/customers"><span class="nav-icon me-2"><i class="fa-solid fa-user-group"></i></span> Customers</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/employees"><span class="nav-icon me-2"><i class="fa-solid fa-user-tie"></i></span> Employees</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/reports"><span class="nav-icon me-2"><i class="fa-solid fa-chart-line"></i></span> Reports</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/settings"><span class="nav-icon me-2"><i class="fa-solid fa-gear"></i></span> Settings</a></li>
+                <!-- Settings subpages -->
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/settings/printers"><span class="nav-icon me-2"><i class="fa-solid fa-print"></i></span> Receipt Printers</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/settings/invoice"><span class="nav-icon me-2"><i class="fa-solid fa-file-invoice"></i></span> Invoice Settings</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/settings/roles"><span class="nav-icon me-2"><i class="fa-solid fa-user-shield"></i></span> Role Permission</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/settings/discounts"><span class="nav-icon me-2"><i class="fa-solid fa-percent"></i></span> Discount Plan</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/settings/discounts/add"><span class="nav-icon me-2"><i class="fa-solid fa-plus"></i></span> Add Discount</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/accounting"><span class="nav-icon me-2"><i class="fa-solid fa-coins"></i></span> Accounting</a></li>
+                <!-- Expenses flat entries -->
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/expenses/categories"><span class="nav-icon me-2"><i class="fa-solid fa-tags"></i></span> Expense Category</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/expenses/list"><span class="nav-icon me-2"><i class="fa-solid fa-receipt"></i></span> Expense List</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/expenses/add"><span class="nav-icon me-2"><i class="fa-solid fa-circle-plus"></i></span> Add Expense</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/system"><span class="nav-icon me-2"><i class="fa-solid fa-server"></i></span> System</a></li>
+                <li class="nav-item"><a class="nav-link pos-nav-link" href="/help"><span class="nav-icon me-2"><i class="fa-solid fa-circle-question"></i></span> Help</a></li>
                 <li class="nav-title">Admin</li>
                 <li id="manage-stock-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon me-2"><i class="fa-solid fa-warehouse"></i></span> Manage Stock</a></li>
                 <li id="manage-users-sidebar-item" class="nav-item"><a class="nav-link" href="#"><span class="nav-icon me-2"><i class="fa-solid fa-users-gear"></i></span> Manage Users</a></li>
@@ -75,19 +93,19 @@
                 <!-- Main POS Menu Tabs -->
                 <nav class="pos-tabs-nav">
                     <ul id="pos-tabs" class="nav nav-pills justify-content-start px-3">
-                        <li class="nav-item"><a class="nav-link" href="#/sales">Sales</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/orders">Orders</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/inventory">Inventory</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/customers">Customers</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/employees">Employees</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/reports">Reports</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/settings">Settings</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/accounting">Accounting</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/system">System</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/help">Help</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/menu">Menu Mgmt</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/tables">Tables</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#/kitchen">Kitchen</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/sales">Sales</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/orders">Orders</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/inventory">Inventory</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/customers">Customers</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/employees">Employees</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/reports">Reports</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/settings">Settings</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/accounting">Accounting</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/system">System</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/help">Help</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/menu">Menu Mgmt</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/tables">Tables</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/kitchen">Kitchen</a></li>
                     </ul>
                 </nav>
             </header>
@@ -187,6 +205,23 @@
                     <div id="app-sections" class="mb-4" style="display:none;">
                         <div id="section-sales" class="pos-section card"><div class="card-header">Sales / Register</div><div class="card-body"><div id="sales-root"></div></div></div>
                         <div id="section-orders" class="pos-section card"><div class="card-header">Orders</div><div class="card-body"><div id="orders-root"></div></div></div>
+                        <!-- Product pages -->
+                        <div id="section-product-categories" class="pos-section card" style="display:none"><div class="card-header">Product Category</div><div class="card-body"><div id="product-categories-root"></div></div></div>
+                        <div id="section-product-list" class="pos-section card" style="display:none"><div class="card-header">Product List</div><div class="card-body"><div id="product-list-root"></div></div></div>
+                        <div id="section-product-add" class="pos-section card" style="display:none"><div class="card-header">Add Product</div><div class="card-body"><div id="product-add-root"></div></div></div>
+                        <div id="section-product-barcodes" class="pos-section card" style="display:none"><div class="card-header">Print Barcode</div><div class="card-body"><div id="product-barcodes-root"></div></div></div>
+                        <div id="section-product-adjustments" class="pos-section card" style="display:none"><div class="card-header">Adjustment List</div><div class="card-body"><div id="product-adjustments-root"></div></div></div>
+                        <div id="section-product-adjustment-add" class="pos-section card" style="display:none"><div class="card-header">Add Adjustment</div><div class="card-body"><div id="product-adjustment-add-root"></div></div></div>
+                        <div id="section-product-stock-count" class="pos-section card" style="display:none"><div class="card-header">Stock Count</div><div class="card-body"><div id="product-stock-count-root"></div></div></div>
+                        <!-- Settings subpages -->
+                        <div id="section-settings-printers" class="pos-section card" style="display:none"><div class="card-header">Receipt Printers</div><div class="card-body"><div id="settings-printers-root"></div></div></div>
+                        <div id="section-settings-invoice" class="pos-section card" style="display:none"><div class="card-header">Invoice Settings</div><div class="card-body"><div id="settings-invoice-root"></div></div></div>
+                        <div id="section-settings-roles" class="pos-section card" style="display:none"><div class="card-header">Role Permission</div><div class="card-body"><div id="settings-roles-root"></div></div></div>
+                        <div id="section-settings-discounts" class="pos-section card" style="display:none"><div class="card-header">Discount Plan</div><div class="card-body"><div id="settings-discounts-root"></div></div></div>
+                        <div id="section-settings-discount-add" class="pos-section card" style="display:none"><div class="card-header">Add Discount</div><div class="card-body"><div id="settings-discount-add-root"></div></div></div>
+                        <div id="section-expense-categories" class="pos-section card" style="display:none"><div class="card-header">Expense Category</div><div class="card-body"><div id="expense-categories-root"></div></div></div>
+                        <div id="section-expense-list" class="pos-section card" style="display:none"><div class="card-header">Expense List</div><div class="card-body"><div id="expense-list-root"></div></div></div>
+                        <div id="section-expense-add" class="pos-section card" style="display:none"><div class="card-header">Add Expense</div><div class="card-body"><div id="expense-add-root"></div></div></div>
                         <div id="section-inventory" class="pos-section card"><div class="card-header">Inventory</div><div class="card-body"><div id="inventory-root"></div></div></div>
                         <div id="section-customers" class="pos-section card"><div class="card-header">Customers</div><div class="card-body"><div id="customers-root"></div></div></div>
                         <div id="section-employees" class="pos-section card"><div class="card-header">Employees</div><div class="card-body"><div id="employees-root"></div></div></div>

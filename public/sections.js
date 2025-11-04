@@ -97,6 +97,70 @@ export async function renderOrders() {
   }
 }
 
+// --- Expenses ---
+export function renderExpenseCategories() {
+  const root = el('expense-categories-root');
+  if (!root) return;
+  root.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Expense Categories</h5>
+      <button id="exp-cat-add-btn" class="btn btn-sm btn-primary">Add Category</button>
+    </div>
+    <div class="text-muted">No categories loaded.</div>
+  `;
+}
+
+export function renderExpenseList() {
+  const root = el('expense-list-root');
+  if (!root) return;
+  root.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Expense List</h5>
+      <a class="btn btn-sm btn-success" href="/expenses/add">Add Expense</a>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="text-muted">No expenses found.</div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderExpenseAdd() {
+  const root = el('expense-add-root');
+  if (!root) return;
+  root.innerHTML = `
+    <form id="expense-form" class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="expense-category"></select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-control" id="expense-date" />
+      </div>
+      <div class="col-sm-8">
+        <label class="form-label">Description</label>
+        <input type="text" class="form-control" id="expense-desc" placeholder="e.g. Office supplies" />
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label">Amount</label>
+        <input type="number" step="0.01" min="0" class="form-control" id="expense-amount" />
+      </div>
+      <div class="col-12">
+        <button type="button" id="expense-save-btn" class="btn btn-primary">Save Expense</button>
+        <a href="/expenses/list" class="btn btn-outline-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  `;
+  // Wire basic navigation for buttons if client router is present
+  const saveBtn = document.getElementById('expense-save-btn');
+  if (saveBtn) saveBtn.addEventListener('click', () => {
+    // Placeholder save; return to list
+    if (window.clientNavigate) window.clientNavigate('/expenses/list');
+  });
+}
+
 export async function renderInventory() {
   const root = el('inventory-root');
   if (!root) return;
@@ -125,6 +189,110 @@ export async function renderInventory() {
       ui.renderStockModal(newMenu);
     } catch {}
   };
+}
+
+// --- Product pages ---
+export function renderProductCategories(){
+  const root = el('product-categories-root'); if (!root) return;
+  root.innerHTML = `
+    <div class="d-flex justify-content-between mb-3">
+      <h5 class="mb-0">Product Categories</h5>
+      <a class="btn btn-sm btn-primary" href="/products/add">Add Product</a>
+    </div>
+    <div class="text-muted">No categories yet.</div>`;
+}
+
+export function renderProductList(){
+  const root = el('product-list-root'); if (!root) return;
+  root.innerHTML = `
+    <div class="d-flex justify-content-between mb-3">
+      <h5 class="mb-0">Product List</h5>
+      <div>
+        <a class="btn btn-sm btn-outline-secondary me-2" href="/products/barcodes">Print Barcode</a>
+        <a class="btn btn-sm btn-primary" href="/products/add">Add Product</a>
+      </div>
+    </div>
+    <div class="card"><div class="card-body"><div class="text-muted">No products found.</div></div></div>`;
+}
+
+export function renderProductAdd(){
+  const root = el('product-add-root'); if (!root) return;
+  root.innerHTML = `
+    <form id="product-form" class="row g-3">
+      <div class="col-sm-6"><label class="form-label">Name</label><input id="p-name" class="form-control" /></div>
+      <div class="col-sm-3"><label class="form-label">Price</label><input id="p-price" type="number" step="0.01" class="form-control" /></div>
+      <div class="col-sm-3"><label class="form-label">Stock</label><input id="p-stock" type="number" class="form-control" /></div>
+      <div class="col-sm-6"><label class="form-label">Category</label><input id="p-cat" class="form-control" /></div>
+      <div class="col-sm-6"><label class="form-label">Barcode</label><input id="p-barcode" class="form-control" /></div>
+      <div class="col-12"><button type="button" id="p-save" class="btn btn-primary">Save</button>
+        <a href="/products/list" class="btn btn-outline-secondary ms-2">Cancel</a></div>
+    </form>`;
+  const btn = document.getElementById('p-save');
+  if (btn) btn.addEventListener('click', ()=>{ if (window.clientNavigate) window.clientNavigate('/products/list'); });
+}
+
+export function renderProductBarcodes(){
+  const root = el('product-barcodes-root'); if (!root) return;
+  root.innerHTML = `<div class="text-muted">Barcode printing setup coming soon.</div>`;
+}
+
+export function renderProductAdjustments(){
+  const root = el('product-adjustments-root'); if (!root) return;
+  root.innerHTML = `
+    <div class="d-flex justify-content-between mb-3">
+      <h5 class="mb-0">Adjustment List</h5>
+      <a class="btn btn-sm btn-primary" href="/products/adjustments/add">Add Adjustment</a>
+    </div>
+    <div class="text-muted">No adjustments found.</div>`;
+}
+
+export function renderProductAdjustmentAdd(){
+  const root = el('product-adjustment-add-root'); if (!root) return;
+  root.innerHTML = `
+    <form class="row g-3">
+      <div class="col-sm-6"><label class="form-label">Product</label><input class="form-control" placeholder="Search product" /></div>
+      <div class="col-sm-3"><label class="form-label">Quantity Change</label><input type="number" class="form-control" /></div>
+      <div class="col-sm-3"><label class="form-label">Reason</label><input class="form-control" /></div>
+      <div class="col-12"><a href="/products/adjustments" class="btn btn-primary">Save</a></div>
+    </form>`;
+}
+
+export function renderProductStockCount(){
+  const root = el('product-stock-count-root'); if (!root) return;
+  root.innerHTML = `<div class="text-muted">Stock count screen coming soon.</div>`;
+}
+
+// --- Settings subpages ---
+export function renderSettingsPrinters(){
+  const root = el('settings-printers-root'); if (!root) return;
+  root.innerHTML = `<div class="text-muted">Configure receipt printers here.</div>`;
+}
+export function renderSettingsInvoice(){
+  const root = el('settings-invoice-root'); if (!root) return;
+  root.innerHTML = `<div class="text-muted">Invoice settings coming soon.</div>`;
+}
+export function renderSettingsRoles(){
+  const root = el('settings-roles-root'); if (!root) return;
+  root.innerHTML = `<div class="text-muted">Role permissions management coming soon.</div>`;
+}
+export function renderSettingsDiscounts(){
+  const root = el('settings-discounts-root'); if (!root) return;
+  root.innerHTML = `
+    <div class="d-flex justify-content-between mb-3">
+      <h5 class="mb-0">Discount Plans</h5>
+      <a class="btn btn-sm btn-primary" href="/settings/discounts/add">Add Discount</a>
+    </div>
+    <div class="text-muted">No discounts defined.</div>`;
+}
+export function renderSettingsDiscountAdd(){
+  const root = el('settings-discount-add-root'); if (!root) return;
+  root.innerHTML = `
+    <form class="row g-3">
+      <div class="col-sm-6"><label class="form-label">Name</label><input class="form-control" /></div>
+      <div class="col-sm-3"><label class="form-label">Type</label><select class="form-select"><option value="percent">Percent</option><option value="fixed">Fixed</option></select></div>
+      <div class="col-sm-3"><label class="form-label">Value</label><input type="number" step="0.01" class="form-control" /></div>
+      <div class="col-12"><a href="/settings/discounts" class="btn btn-primary">Save</a></div>
+    </form>`;
 }
 
 export function renderCustomers() {
@@ -482,8 +650,9 @@ export async function renderTables() {
     // wire actions
     root.onclick = async (e)=>{
       const btn = e.target.closest('button[data-act]'); if(!btn) return; const table = btn.getAttribute('data-table'); const act = btn.getAttribute('data-act');
-      // switch to Sales
-      window.location.hash = '#/sales';
+      // switch to Sales (path-based navigation)
+      if (window.clientNavigate) window.clientNavigate('/sales');
+      else { try { window.history.pushState({}, '', '/sales'); } catch {} }
       // set order type to table + table number
       const typeSel = document.getElementById('order-type-select'); if (typeSel) { typeSel.value = 'table'; const ev=new Event('change'); typeSel.dispatchEvent(ev); }
       const tableSel = document.getElementById('table-select'); if (tableSel) tableSel.value = String(table);

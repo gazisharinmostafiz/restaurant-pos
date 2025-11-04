@@ -340,6 +340,10 @@ body {
     color: #fff;
 }
 
+/* Hide 'System' tab in POS tabs only (sidebar remains unchanged) */
+.pos-tabs-nav #pos-tabs .nav-link[href="/system"] { display: none !important; }
+.pos-tabs-nav #pos-tabs li:has(> a.nav-link[href="/system"]) { display: none !important; }
+
 .pos-section { margin-bottom: 1rem; }
 
 .menu-items {

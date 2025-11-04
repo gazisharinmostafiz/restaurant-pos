@@ -33,6 +33,32 @@ app.use(session({
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d', immutable: true }));
 app.use(bodyParser.json());
 
+// SPA routes: serve index.html for app sections
+const SPA_PATHS = [
+  '/sales','/orders','/inventory',
+  '/products/categories','/products/list','/products/add','/products/barcodes','/products/adjustments','/products/adjustments/add','/products/stock-count',
+  '/expenses','/expenses/categories','/expenses/list','/expenses/add',
+  '/customers','/employees','/reports',
+  '/settings','/settings/printers','/settings/invoice','/settings/roles','/settings/discounts','/settings/discounts/add',
+  '/accounting','/system','/help','/menu','/tables','/kitchen'
+];
+SPA_PATHS.forEach(p => {
+  app.get(p, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+});
+
+// Catch‑all for SPA paths: serve index.html for non-API, non-admin, and non-static (no extension) routes
+app.use((req, res, next) => {
+  const p = req.path || '';
+  // Skip API and admin
+  if (p.startsWith('/api') || p.startsWith('/admin')) return next();
+  // If it looks like a file (has extension), let static/404 handle it
+  if (path.extname(p)) return next();
+  // Serve SPA shell
+  return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Middleware to protect routes
 const isAuthenticated = (req, res, next) => {
     if (req.session.user) {

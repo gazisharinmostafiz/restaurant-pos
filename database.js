@@ -399,12 +399,14 @@ async function updateUsers() {
     }
 }
 
-console.log('Initializing database...');
-initializeDatabase();
+async function main() {
+    console.log('Initializing database...');
+    await initializeDatabase();
 
-// Ensure default user passwords are valid (dev convenience). Only run in development.
-if (process.env.NODE_ENV === 'development') {
-    updateUsers();
+    // Ensure default user passwords are valid (dev convenience).
+    await updateUsers();
 }
+
+main();
 
 module.exports = pool;

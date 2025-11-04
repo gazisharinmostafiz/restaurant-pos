@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 3000;
 // Compression for better performance
 try { const compression = require('compression'); app.use(compression()); } catch {}
 
+// Avoid noisy 404s for favicon
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Session Middleware
 app.use(session({
     name: 'connect.sid',

@@ -203,16 +203,15 @@
                     <div class="row">
                         <!-- Left Column: Menu and Pending Orders -->
                         <div class="col-lg-8">
-                            <div id="menu-section" class="card mb-4">
-                                <div class="card-header">Home</div>
+                                                    <div id="menu-section" class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span>Home</span>
+                                    <button id="toggle-touch-mode" class="btn btn-sm btn-outline-secondary">Toggle Touch Mode</button>
+                                </div>
                                 <div class="card-body">
                                     <!-- Category Bar moved from sidebar to main content -->
                                     <ul id="category-bar" class="menu-categories nav nav-tabs category-bar mb-3" role="tablist"></ul>
-                                    <div class="d-flex gap-2 align-items-center mb-2">
-                                        <input id="lookup-input" class="form-control" placeholder="Scan or Lookup Item (name or ID)" />
-                                        <button id="lookup-add-btn" class="btn btn-outline-primary">Add</button>
-                                    </div>
-                                    <div id="category-tab-content" class="tab-content"></div>
+                                    <div id="menu-items" class="menu-items"></div>
                                 </div>
                             </div>
                             <div id="pending-orders-section" class="card mb-4">

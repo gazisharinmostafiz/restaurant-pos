@@ -1,4 +1,4 @@
-import * as api from './api.js';
+﻿import * as api from './api.js';
 import { getState, setState, setCurrentOrder, clearCurrentOrder } from './state.js';
 import { updatePaymentDetails, openPaymentModal, processPayment } from './payments.js';
 import { initSession, loadMenu, placeOrder, addToExisting, newOrderForTable, handleNewOrder, selectPending, refreshPending, addItemFromClick, renderOrder, suspendSale, resumeSale, printReceipt, emailReceipt } from './orders.js';
@@ -22,9 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   wire();
   // Normalize Pound placeholders before dynamic render
-  const p1=document.getElementById('total-price'); if (p1) p1.textContent='£0.00';
-  const p2=document.getElementById('payment-total-due'); if (p2) p2.textContent='£0.00';
-  const p3=document.getElementById('payment-change-due'); if (p3) p3.textContent='£0.00';
+  const p1=document.getElementById('total-price'); if (p1) p1.textContent='Â£0.00';
+  const p2=document.getElementById('payment-total-due'); if (p2) p2.textContent='Â£0.00';
+  const p3=document.getElementById('payment-change-due'); if (p3) p3.textContent='Â£0.00';
   // ensure admin user management modal works
   try { initializeUserManagement(); } catch {}
   initSession().finally(() => {
@@ -57,19 +57,37 @@ function wire(){
   q('#place-order-btn')?.addEventListener('click', placeOrder);
   q('#order-type-select')?.addEventListener('change', (e)=>{ const show = e.target.value==='table'; q('#table-select').style.display = show? 'inline-block':'none'; });
 
+  const touchToggle = q('#toggle-touch-mode');
+  if (touchToggle) {
+    const syncTouchLabel = () => {
+      touchToggle.textContent = document.body.classList.contains('touch-mode') ? 'Disable Touch Mode' : 'Enable Touch Mode';
+    };
+    syncTouchLabel();
+    touchToggle.addEventListener('click', () => {
+      document.body.classList.toggle('touch-mode');
+      syncTouchLabel();
+    });
+  }
+
   // Menu interactions
-  d('.menu-categories')?.addEventListener('click', (e)=>{ const link=e.target.closest('.menu-category-btn'); if (!link) return; e.preventDefault(); /* fetch items already loaded */ });
-  q('#category-tab-content')?.addEventListener('click', (e)=>{ const el=e.target.closest('.menu-item'); if (!el) return; addItemFromClick(el); });
+  d('.menu-categories')?.addEventListener('click', (e)=>{ const link=e.target.closest('.menu-category-btn'); if (!link) return; e.preventDefault(); const category = link.dataset.category; if (category && window.displayMenuItems) window.displayMenuItems(category); document.querySelectorAll('.menu-categories .menu-category-btn').forEach(btn=>btn.classList.remove('active')); link.classList.add('active'); });
+  q('#menu-items')?.addEventListener('click', (e)=>{ const el=e.target.closest('.menu-item'); if (!el) return; addItemFromClick(el); });
   // Keyboard support: Enter/Space to add item
-  q('#category-tab-content')?.addEventListener('keydown', (e)=>{ const el=e.target.closest('.menu-item'); if (!el) return; if (e.key==='Enter' || e.key===' '){ e.preventDefault(); addItemFromClick(el); }});
+  q('#menu-items')?.addEventListener('keydown', (e)=>{ const el=e.target.closest('.menu-item'); if (!el) return; if (e.key==='Enter' || e.key===' '){ e.preventDefault(); addItemFromClick(el); }});
   // Normalize currency in item cards and set a11y attributes when cards are rendered
-  const cat = q('#category-tab-content');
+  const cat = q('#menu-items');
   if (cat){
     const fix = () => {
       cat.querySelectorAll('.menu-item').forEach(card=>{
         card.setAttribute('role','button'); card.tabIndex = 0;
         const priceEl = card.querySelector('.item-price');
-        if (priceEl){ const txt = priceEl.textContent||''; if (!txt.trim().startsWith('£')) priceEl.textContent = '£'+txt.replace(/^[^\d.]*/,''); }
+        if (priceEl){
+          const txt = priceEl.textContent || '';
+          if (!txt.trim().startsWith('£')) {
+            const numeric = txt.replace(/^[^\d.]*/, '');
+            priceEl.textContent = '£' + numeric;
+          }
+        }
       });
     };
     const mo = new MutationObserver((muts)=>{ for (const m of muts){ if (m.addedNodes && m.addedNodes.length){ fix(); break; } } });
@@ -172,3 +190,4 @@ function applyRoleUIFromSession(){
   if (!currentUserRole) return;
   applyRoleUI(currentUserRole);
 }
+

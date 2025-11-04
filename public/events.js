@@ -31,7 +31,7 @@ export function initializeEventListeners() {
         stockSearchInput: document.getElementById('stock-search-input'),
         
         menuCategoriesContainer: document.querySelector('.menu-categories'),
-        menuItemsContainer: document.getElementById('category-tab-content'),
+        menuItemsContainer: document.getElementById('menu-items'),
         orderList: document.getElementById('order-list'),
         pendingOrdersList: document.getElementById('pending-orders-list'),
         orderQueueList: document.getElementById('order-queue-list'),

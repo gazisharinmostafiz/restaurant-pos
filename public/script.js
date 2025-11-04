@@ -1,4 +1,5 @@
-let menu = {}; // Will be fetched from the server
+let menu = {};
+const CURRENCY_SYMBOL = '\u00A3'; // Will be fetched from the server
 
 let currentUserRole = '';
 let selectedOrderId = null;
@@ -251,13 +252,20 @@ async function fetchMenu() {
 }
 
 function populateMenuCategories() {
-    menuCategoriesContainer.innerHTML = '<li class="nav-title">Menu Categories</li>';
-    Object.keys(menu).forEach(category => {
+    menuCategoriesContainer.innerHTML = '';
+    const categories = Object.keys(menu || {});
+    if (!categories.length) {
+        menuItemsContainer.innerHTML = '<div class="text-muted">No items available.</div>';
+        return;
+    }
+    categories.forEach((category, index) => {
         const li = document.createElement('li');
         li.className = 'nav-item';
-        li.innerHTML = `<a class="nav-link menu-category-btn" href="#" data-category="${category}">${category}</a>`;
+        const activeClass = index === 0 ? ' active' : '';
+        li.innerHTML = '<a class="nav-link menu-category-btn' + activeClass + '" href="#" data-category="' + category + '">' + category + '</a>';
         menuCategoriesContainer.appendChild(li);
     });
+    displayMenuItems(categories[0]);
 }
 
 function displayMenuItems(category) {
@@ -271,9 +279,8 @@ function displayMenuItems(category) {
         div.dataset.name = name;
         div.dataset.price = price;
         div.dataset.stock = stock;
-        div.innerHTML = `
-            <div class="item-name">${name}</div>
-            <div class="item-meta"><span class="stock-badge">Stock: ${stock}</span><span class="item-price">£${price.toFixed(2)}</span></div>`;
+        div.innerHTML = '<div class="item-name">' + name + '</div>' +
+            '<div class="item-meta"><span class="stock-badge">Stock: ' + stock + '</span><span class="item-price">' + CURRENCY_SYMBOL + price.toFixed(2) + '</span></div>';
         menuItemsContainer.appendChild(div);
     });
 }
@@ -672,3 +679,6 @@ async function generateZReport() {
 
 // Run on page load
 checkSession();
+
+window.displayMenuItems = displayMenuItems;
+
